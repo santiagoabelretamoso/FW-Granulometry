@@ -10,10 +10,31 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QFileDialog, QAction, QTabWidget, QWidget,
-    QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QLabel, QColorDialog,
-    QCheckBox, QDialog, QGroupBox, QRadioButton, QButtonGroup, QTextEdit, QMessageBox,
-    QTableView, QDoubleSpinBox
+    QApplication,
+    QMainWindow,
+    QFileDialog,
+    QAction,
+    QTabWidget,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QComboBox,
+    QLabel,
+    QColorDialog,
+    QCheckBox,
+    QDialog,
+    QGroupBox,
+    QRadioButton,
+    QButtonGroup,
+    QTextEdit,
+    QMessageBox,
+    QTableView,
+    QDoubleSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QFormLayout,
+    QLineEdit
 )
 from PyQt5.QtCore import Qt, QAbstractTableModel
 
@@ -315,49 +336,49 @@ class DataBaseWindow(QDialog):
         btn_close.clicked.connect(self.close)
         layout.addWidget(btn_close)
 
-# === Bloque 5.3: Diálogo para emparejar muestras Tamiz ↔ Láser ===
+# === Bloque 5.3: Diálogo para emparejar muestras Tamiz ↔ Láser (con φₑₓₜᵣₐ) ===
 class MatchDialog(QDialog):
     def __init__(self, df_tamiz, df_laser, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Emparejar muestras Tamiz y Láser")
         self.resize(900, 450)
-        self.pairs = []  # lista de tuplas (fila_tamiz, fila_laser)
+        self.pairs = []        # lista de tuplas (tamiz_sample, laser_sample)
+        self.phi_map = {}      # mapa tamiz_sample → φ_extraído
 
         layout = QHBoxLayout(self)
 
-        # Tabla Tamiz (muestra nombres únicos de muestra)
+        # Tabla Tamiz
         self.tv_t = QTableView()
-        tamiz_samples = df_tamiz.iloc[:, 1].drop_duplicates().tolist()
+        tamiz_samples = df_tamiz.iloc[:,1].drop_duplicates().tolist()
         df_t = pd.DataFrame(tamiz_samples, columns=["G. Tamizado"])
         self.model_t = PandasModel(df_t)
         self.tv_t.setModel(self.model_t)
         self.tv_t.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.tv_t)
 
-        # Tabla Laser (ahora muestra nombres únicos de muestra LASER, no φ)
+        # Tabla Láser
         self.tv_l = QTableView()
-        # Corrección clave: usar el nombre de muestra, no phi
         laser_samples = df_laser["Sample"].drop_duplicates().tolist()
-        df_l = pd.DataFrame(laser_samples, columns=["G. Laser"])
+        df_l = pd.DataFrame(laser_samples, columns=["G. Láser"])
         self.model_l = PandasModel(df_l)
         self.tv_l.setModel(self.model_l)
         self.tv_l.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.tv_l)
 
-        # Panel de emparejamientos
+        # Tabla de emparejamientos con columna de φₑₓₜᵣₐ
+        self.table = QTableWidget(0, 3)
+        self.table.setHorizontalHeaderLabels(["Tamiz", "Láser", "φₑₓₜᵣₐ"])
+        layout.addWidget(self.table)
+
+        # Botones a la derecha
         right = QVBoxLayout()
         btn_pair = QPushButton("Emparejar selección")
         btn_pair.clicked.connect(self.pair_selected)
         right.addWidget(btn_pair)
-
-        self.txt_pairs = QTextEdit()
-        self.txt_pairs.setReadOnly(True)
-        right.addWidget(self.txt_pairs)
-
+        right.addStretch()
         btn_ok = QPushButton("Listo")
         btn_ok.clicked.connect(self.accept)
         right.addWidget(btn_ok)
-
         layout.addLayout(right)
 
     def pair_selected(self):
@@ -366,18 +387,19 @@ class MatchDialog(QDialog):
         if not sel_t or not sel_l:
             QMessageBox.warning(self, "Error", "Selecciona una fila en cada tabla")
             return
-        r_t = sel_t[0].row()
-        r_l = sel_l[0].row()
-        self.pairs.append((r_t, r_l))
-        self._update_text()
+        t = self.model_t._df.iloc[sel_t[0].row(), 0]
+        l = self.model_l._df.iloc[sel_l[0].row(), 0]
+        row = self.table.rowCount()
+        self.table.insertRow(row)
+        self.table.setItem(row, 0, QTableWidgetItem(str(t)))
+        self.table.setItem(row, 1, QTableWidgetItem(str(l)))
+        spin = QDoubleSpinBox()
+        spin.setRange(-10.0, 10.0)
+        spin.setDecimals(2)
+        spin.setValue(0.0)
+        self.table.setCellWidget(row, 2, spin)
+        self.pairs.append((t, l))
 
-    def _update_text(self):
-        lines = []
-        for rt, rl in self.pairs:
-            s_t = self.model_t._df.iloc[rt, 0]
-            s_l = self.model_l._df.iloc[rl, 0]
-            lines.append(f"{s_t}  ↔  {s_l}")
-        self.txt_pairs.setPlainText("\n".join(lines))
 
 # === Bloque 6: Canvas de tamaño fijo ===
 class FixedSizeFigureCanvas(FigureCanvas):
@@ -386,16 +408,6 @@ class FixedSizeFigureCanvas(FigureCanvas):
         super().__init__(fig)
         self.setFixedSize(int(width * dpi), int(height * dpi))
         self.setSizePolicy(self.sizePolicy().Fixed, self.sizePolicy().Fixed)
-
-# === Bloque 6: Clase FixedSizeFigureCanvas ===
-class FixedSizeFigureCanvas(FigureCanvas):
-    def __init__(self, width, height, dpi=100, *args, **kwargs):
-        fig = plt.figure(figsize=(width, height), dpi=dpi)
-        super().__init__(fig)
-        self.setFixedSize(int(width * dpi), int(height * dpi))
-        self.setSizePolicy(
-            self.sizePolicy().Fixed, self.sizePolicy().Fixed
-        )
 
 # === Bloque 7: Clase MainWindow – Constructor y menú principal ===
 class MainWindow(QMainWindow):
@@ -520,8 +532,7 @@ class MainWindow(QMainWindow):
         self.selected_groups_walker = self.groups.copy()
         self.selected_groups_gk = self.groups.copy()
 
-    # === Bloque 8.1: Pestaña Gráfico XY (multiselección de bases) ===
-
+       # === Bloque 8: Configuración de pestañas de gráficos ===
     def initUI(self):
         self.initMenu()
         self.tabs = QTabWidget()
@@ -535,43 +546,36 @@ class MainWindow(QMainWindow):
         v_xy = QVBoxLayout(self.tab_xy)
         h_controls = QHBoxLayout()
 
-        # Cargar Tamiz
         self.btn_load_tamiz = QPushButton("Cargar archivo Excel de tamizado")
         self.btn_load_tamiz.clicked.connect(self.load_file)
         h_controls.addWidget(self.btn_load_tamiz)
 
-        # Ejes X/Y
         h_controls.addWidget(QLabel("Eje X:"))
         self.cmb_x = QComboBox();    h_controls.addWidget(self.cmb_x)
         h_controls.addWidget(QLabel("Eje Y:"))
         self.cmb_y = QComboBox();    h_controls.addWidget(self.cmb_y)
 
-        # Graficar XY
         self.btn_plot_xy = QPushButton("Graficar XY")
         self.btn_plot_xy.clicked.connect(self.plot_xy)
         h_controls.addWidget(self.btn_plot_xy)
 
-        # Elegir bases a graficar
         self.btn_select_db = QPushButton("Elegir bases a graficar")
         self.btn_select_db.clicked.connect(self.select_db_to_plot)
         h_controls.addWidget(self.btn_select_db)
 
         h_controls.addStretch()
 
-        # Exportar imagen
         self.btn_export_xy = QPushButton("Exportar imagen")
         self.btn_export_xy.clicked.connect(lambda: self.export_canvas(self.canvas_xy))
         h_controls.addWidget(self.btn_export_xy)
 
         v_xy.addLayout(h_controls)
 
-        # Consola de texto
         self.txt_console = QTextEdit()
         self.txt_console.setReadOnly(True)
         self.txt_console.setMaximumHeight(190)
         v_xy.addWidget(self.txt_console)
 
-        # Canvas XY
         self.canvas_xy = FigureCanvas(plt.figure(figsize=(8, 4.5)))
         self.canvas_xy.setFixedHeight(450)
         v_xy.addWidget(self.canvas_xy)
@@ -644,40 +648,95 @@ class MainWindow(QMainWindow):
         v_gk.addWidget(self.canvas_gk)
 
         self.tabs.addTab(self.tab_gk, "Gençalioğlu-Kuşcu et al 2007")
+                  # === 8.4: Pestaña Histograma ===
+        self.tab_hist = QWidget()
+        v_hist = QVBoxLayout(self.tab_hist)
 
-    def select_db_to_plot(self):
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Elegir bases a graficar")
-        layout = QVBoxLayout(dlg)
+        # Panel de controles de opciones (siempre visible)
+        h_opts = QHBoxLayout()
+        h_opts.addWidget(QLabel("Ancho de barra (%):"))
+        self.spn_hist_width = QDoubleSpinBox()
+        self.spn_hist_width.setRange(1, 100)
+        self.spn_hist_width.setValue(70)
+        self.spn_hist_width.setSingleStep(1)
+        h_opts.addWidget(self.spn_hist_width)
 
-        cb_t = QCheckBox("Tamiz")
-        cb_t.setChecked(self.current_db_selection["tamiz"])
-        cb_l = QCheckBox("Laser")
-        cb_l.setChecked(self.current_db_selection["laser"])
-        cb_l.setEnabled(hasattr(self, "param_results_laser"))
-        cb_h = QCheckBox("Tamiz + Laser")
-        cb_h.setChecked(self.current_db_selection["hybrid"])
-        cb_h.setEnabled(hasattr(self, "param_results_hybrid"))
+        # Botón para cambiar colores de barras
+        self.btn_hist_colors = QPushButton("Colores de barras")
+        h_opts.addWidget(self.btn_hist_colors)
 
-        layout.addWidget(cb_t)
-        layout.addWidget(cb_l)
-        layout.addWidget(cb_h)
+        # Botón para editar labels de ejes y título
+        self.btn_labels = QPushButton("Labels")
+        h_opts.addWidget(self.btn_labels)
 
-        btn = QPushButton("Aceptar")
-        btn.clicked.connect(dlg.accept)
-        layout.addWidget(btn)
+        # Checkboxes para visibilidad de componentes
+        self.chk_hist = QCheckBox("Histograma (barras)")
+        self.chk_hist.setChecked(True)
+        h_opts.addWidget(self.chk_hist)
 
-        if dlg.exec_():
-            self.current_db_selection = {
-                "tamiz":  cb_t.isChecked(),
-                "laser":  cb_l.isChecked(),
-                "hybrid": cb_h.isChecked()
-            }
-            self.plot_xy()
+        self.chk_poly = QCheckBox("Polígono de frecuencia")
+        self.chk_poly.setChecked(True)
+        h_opts.addWidget(self.chk_poly)
 
-# === Bloque 9: Métodos de MainWindow (dividido en subbloques) ===
+        self.chk_cum = QCheckBox("Curva acumulativa")
+        self.chk_cum.setChecked(True)
+        h_opts.addWidget(self.chk_cum)
 
-           # === Bloque 9.1: Métodos de carga de archivos y bases de datos ===
+        # Botón para exportar
+        self.btn_export_hist = QPushButton("Exportar gráfico")
+        h_opts.addWidget(self.btn_export_hist)
+
+        h_opts.addStretch()
+        v_hist.addLayout(h_opts)
+
+        # Controles de selección de base y muestra
+        h_sel = QHBoxLayout()
+        h_sel.addWidget(QLabel("Base:"))
+        self.cmb_hist_base = QComboBox()
+        h_sel.addWidget(self.cmb_hist_base)
+
+        h_sel.addWidget(QLabel("Muestra:"))
+        self.cmb_hist_sample = QComboBox()
+        self.cmb_hist_sample.setMinimumWidth(220)
+        h_sel.addWidget(self.cmb_hist_sample)
+
+        self.btn_plot_hist = QPushButton("Graficar Histograma")
+        self.btn_plot_hist.clicked.connect(self.plot_histogram)
+        h_sel.addWidget(self.btn_plot_hist)
+
+        h_sel.addStretch()
+        v_hist.addLayout(h_sel)
+
+        # Canvas para el histograma
+        self.canvas_hist = FigureCanvas(plt.figure(figsize=(6, 4)))
+        v_hist.addWidget(self.canvas_hist)
+
+        # Añadimos la pestaña al QTabWidget
+        self.tabs.addTab(self.tab_hist, "Histograma")
+
+        # === Valores por defecto para el histograma ===
+        self.hist_bar_fill = "skyblue"
+        self.hist_bar_edge = "black"
+
+        # === Valores por defecto para los labels ===
+        self.hist_title   = "Histograma"
+        self.hist_xlabel  = "φ"
+        self.hist_ylabel  = "wt (%)"
+        self.hist_ylabel2 = "Frecuencia Acumulativa"
+
+        # === Conexiones para panel de opciones ===
+        self.spn_hist_width.valueChanged.connect(self.plot_histogram)
+        self.btn_hist_colors.clicked.connect(self.choose_hist_colors)
+        self.btn_labels.clicked.connect(self.choose_hist_labels)       # ← conexión para Labels
+        self.chk_hist.toggled.connect(self.plot_histogram)
+        self.chk_poly.toggled.connect(self.plot_histogram)
+        self.chk_cum.toggled.connect(self.plot_histogram)
+        self.btn_export_hist.clicked.connect(lambda: self.export_canvas(self.canvas_hist))
+
+        # Finalmente, inicializamos el combo de muestras
+        self._update_hist_samples()
+
+# === Bloque 9.1: Métodos de carga de archivos y bases de datos ===
 
     def load_file(self):
         file, _ = QFileDialog.getOpenFileName(
@@ -724,6 +783,9 @@ class MainWindow(QMainWindow):
         self.plot_walker()
         self.plot_gk()
         self.act_viewdb_tamiz.setEnabled(True)
+
+        # ——— También refrescar Histograma ———
+        self._update_hist_samples()
 
 
     def load_laser_file(self):
@@ -805,6 +867,9 @@ class MainWindow(QMainWindow):
             txt += f"  Media (Mz): {r['mean']:.4f}\n\n"
         self.txt_console.append(txt)
 
+        # ——— Y aquí también refrescar Histograma ———
+        self._update_hist_samples()
+
 
     def show_tamiz_db_window(self):
         if self.df_data is None:
@@ -832,8 +897,10 @@ class MainWindow(QMainWindow):
         dlg = DataBaseWindow("Base de datos tamiz + láser", self.df_hybrid, self)
         dlg.exec_()
 
-        # === Bloque 9.2: Métodos de actualización de consola, gráficos y configuración de grupos ===
 
+# === Bloque 9.2: Métodos de actualización de consola, gráficos y configuración de grupos ===
+
+    # === Bloque 9.2.1: update_console ===
     def update_console(self):
         txt = ""
         # Tamiz
@@ -871,6 +938,7 @@ class MainWindow(QMainWindow):
                 txt += f"  Media (Mz): {r['mean']:.4f}\n\n"
         self.txt_console.setPlainText(txt)
 
+    # === Bloque 9.2.2: plot_xy ===
     def plot_xy(self):
         x = self.cmb_x.currentText(); y = self.cmb_y.currentText()
         fig = self.canvas_xy.figure; fig.clf()
@@ -910,6 +978,7 @@ class MainWindow(QMainWindow):
         fig.tight_layout(pad=1.7, rect=[0, 0, 0.87, 1])
         self.canvas_xy.draw()
 
+    # === Bloque 9.2.3: plot_walker ===
     def plot_walker(self):
         x = "median"
         y = "sigma"
@@ -952,6 +1021,7 @@ class MainWindow(QMainWindow):
         fig.subplots_adjust(left=0.08, right=0.83, bottom=0.20, top=0.97)
         self.canvas_walker.draw()
 
+    # === Bloque 9.2.4: plot_gk ===
     def plot_gk(self):
         x = "median"
         y = "sigma"
@@ -994,8 +1064,8 @@ class MainWindow(QMainWindow):
         fig.subplots_adjust(left=0.08, right=0.83, bottom=0.20, top=0.97)
         self.canvas_gk.draw()
 
+    # === Bloque 9.2.5: Configuración de colores y visibilidad de grupos ===
     def edit_colors(self):
-        # Usa la lista self.groups (que ya tiene las claves compuestas)
         if not self.groups:
             return
         dlg = ColorDialog(self.groups, self.group_colors, self)
@@ -1027,61 +1097,356 @@ class MainWindow(QMainWindow):
             self.selected_groups_gk = dlg.get_selected()
             self.plot_gk()
 
-      # === Bloque 9.3: Métodos de configuración y exportación ===
+    def select_db_to_plot(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Elegir bases a graficar")
+        layout = QVBoxLayout(dlg)
+
+        cb_t = QCheckBox("Tamiz")
+        cb_t.setChecked(self.current_db_selection["tamiz"])
+        cb_l = QCheckBox("Laser")
+        cb_l.setChecked(self.current_db_selection["laser"])
+        cb_l.setEnabled(hasattr(self, "param_results_laser"))
+        cb_h = QCheckBox("Tamiz + Laser")
+        cb_h.setChecked(self.current_db_selection["hybrid"])
+        cb_h.setEnabled(hasattr(self, "param_results_hybrid"))
+
+        layout.addWidget(cb_t)
+        layout.addWidget(cb_l)
+        layout.addWidget(cb_h)
+
+        btn = QPushButton("Aceptar")
+        btn.clicked.connect(dlg.accept)
+        layout.addWidget(btn)
+
+        if dlg.exec_():
+            self.current_db_selection = {
+                "tamiz":  cb_t.isChecked(),
+                "laser":  cb_l.isChecked(),
+                "hybrid": cb_h.isChecked()
+            }
+            self.plot_xy()
+    # === Bloque 9.2.6: Métodos para la pestaña Histograma ===
+
+    def _update_hist_bases(self):
+        """Rellena el combo de bases al iniciar la pestaña Histograma."""
+        bases = []
+        if self.df_data   is not None: bases.append("Tamiz")
+        if self.df_laser  is not None: bases.append("Laser")
+        if self.df_hybrid is not None: bases.append("Híbrido")
+        self.cmb_hist_base.blockSignals(True)
+        self.cmb_hist_base.clear()
+        self.cmb_hist_base.addItems(bases)
+        self.cmb_hist_base.blockSignals(False)
+
+    def _update_hist_samples(self):
+        """Rellena el combo de muestras según la base seleccionada."""
+        previous = self.cmb_hist_base.currentText()
+        # actualizar bases (por si cambió fuera de este método)
+        bases = []
+        if self.df_data   is not None: bases.append("Tamiz")
+        if self.df_laser  is not None: bases.append("Laser")
+        if self.df_hybrid is not None: bases.append("Híbrido")
+        self.cmb_hist_base.blockSignals(True)
+        self.cmb_hist_base.clear()
+        self.cmb_hist_base.addItems(bases)
+        if previous in bases:
+            self.cmb_hist_base.setCurrentText(previous)
+        self.cmb_hist_base.blockSignals(False)
+
+        # actualizar muestras
+        base = self.cmb_hist_base.currentText()
+        if not base:
+            self.cmb_hist_sample.clear()
+            return
+        if base == "Tamiz":
+            df, col = self.df_data, self.df_data.columns[1]
+        elif base == "Laser":
+            df, col = self.df_laser, "Sample"
+        else:
+            df, col = self.df_hybrid, "Tamiz Sample"
+        self.cmb_hist_sample.blockSignals(True)
+        self.cmb_hist_sample.clear()
+        samples = sorted(df[col].unique()) if df is not None else []
+        self.cmb_hist_sample.addItems([str(s) for s in samples])
+        self.cmb_hist_sample.blockSignals(False)
+
+    def plot_histogram(self):
+        """Dibuja histograma, polígono de frecuencia y/o curva acumulativa."""
+        base   = self.cmb_hist_base.currentText()
+        sample = self.cmb_hist_sample.currentText()
+        # seleccionar DataFrame y columnas según base
+        if   base == "Tamiz":
+            df, phi_col, wt_col, samp_col = (
+                self.df_data,
+                self.df_data.columns[0],
+                self.df_data.columns[2],
+                self.df_data.columns[1]
+            )
+        elif base == "Laser":
+            df, phi_col, wt_col, samp_col = (
+                self.df_laser,
+                "phi",
+                "Wt",
+                "Sample"
+            )
+        else:  # Híbrido
+            df, phi_col, wt_col, samp_col = (
+                self.df_hybrid,
+                "phi",
+                "wt%",
+                "Tamiz Sample"
+            )
+        # validar
+        if df is None or not sample or sample not in df[samp_col].values:
+            QMessageBox.warning(self, "Error", f"No hay datos para la muestra {sample}.")
+            return
+        sub = df[df[samp_col] == sample]
+        if sub.empty:
+            QMessageBox.warning(self, "Error", f"No hay datos para la muestra {sample}.")
+            return
+
+        # preparar figura
+        fig = self.canvas_hist.figure; fig.clf()
+        ax  = fig.add_subplot(111)
+
+        x = np.array(sub[phi_col], dtype=float)
+        y = np.array(sub[wt_col],   dtype=float)
+
+        # calcular ancho de barra en función del porcentaje
+        if len(x) > 1:
+            spacing = np.min(np.diff(np.sort(x)))
+        else:
+            spacing = 1.0
+        width = spacing * (self.spn_hist_width.value() / 100.0)
+
+        # dibujar barras si está seleccionado
+        if self.chk_hist.isChecked():
+            ax.bar(x, y,
+                   width=width,
+                   color=self.hist_bar_fill,
+                   edgecolor=self.hist_bar_edge,
+                   zorder=10)
+
+        # dibujar polígono de frecuencia
+        if self.chk_poly.isChecked():
+            ax.plot(x, y, "-o",
+                    color=self.hist_bar_edge,
+                    zorder=20)
+
+        # dibujar curva acumulativa
+        ax2 = None
+        if self.chk_cum.isChecked():
+            ax2 = ax.twinx()
+            y_ac = np.cumsum(y)
+            y_ac = (100 * y_ac / y_ac[-1]) if y_ac[-1] != 0 else y_ac
+            ax2.plot(x, y_ac, "-o",
+                     color="black",
+                     zorder=30)
+            # --- usar label personalizado:
+            ylabel2 = getattr(self, "hist_ylabel2", "Frecuencia Acumulativa")
+            ax2.set_ylabel(ylabel2, fontsize=14)
+            ax2.set_ylim(0, 100)
+            ax2.tick_params(axis='y', labelsize=12)
+
+        # eje secundario inferior con tamaños en µm
+        def um(phi): return 1000 * (2 ** -float(phi))
+        sec = ax.twiny()
+        sec.set_xlim(ax.get_xlim())
+        sec.set_xticks(x)
+        sec.set_xticklabels([str(int(round(um(v)))) for v in x])
+        sec.xaxis.set_ticks_position("bottom")
+        sec.xaxis.set_label_position("bottom")
+        sec.spines["bottom"].set_position(("outward", 40))
+        sec.set_xlabel("Tamaño (µm)", fontsize=13)
+        sec.tick_params(axis='x', labelsize=12)
+
+        # === USAR LABELS PERSONALIZADOS ===
+        # Ejes principales:
+        xlabel = getattr(self, "hist_xlabel", "φ")
+        ylabel = getattr(self, "hist_ylabel", "wt (%)")
+        title  = getattr(self, "hist_title", sample if sample else "Histograma")
+
+        ax.set_xlabel(xlabel, fontsize=14)
+        ax.set_ylabel(ylabel, fontsize=14)
+        ax.set_title(title if title else str(sample), fontsize=16, weight="bold", pad=12)
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
+
+        fig.tight_layout()
+        self.canvas_hist.draw()
+
+
+    # === Bloque 9.2.7: Métodos de configuración y diálogo de colores para Histograma ===
+
+    def choose_hist_colors(self):
+        """Abre un diálogo para seleccionar color de relleno y borde del histograma."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Colores de barras del histograma")
+        layout = QVBoxLayout(dlg)
+        # Botón y label para relleno
+        btn_fill = QPushButton("Color de relleno")
+        lbl_fill = QLabel(f"Actual: {getattr(self, 'hist_bar_fill', 'skyblue')}")
+        def set_fill():
+            color = QColorDialog.getColor()
+            if color.isValid():
+                self.hist_bar_fill = color.name()
+                lbl_fill.setText(f"Actual: {self.hist_bar_fill}")
+        btn_fill.clicked.connect(set_fill)
+        # Botón y label para borde
+        btn_edge = QPushButton("Color de borde")
+        lbl_edge = QLabel(f"Actual: {getattr(self, 'hist_bar_edge', 'black')}")
+        def set_edge():
+            color = QColorDialog.getColor()
+            if color.isValid():
+                self.hist_bar_edge = color.name()
+                lbl_edge.setText(f"Actual: {self.hist_bar_edge}")
+        btn_edge.clicked.connect(set_edge)
+        # Armar diálogo
+        layout.addWidget(btn_fill)
+        layout.addWidget(lbl_fill)
+        layout.addWidget(btn_edge)
+        layout.addWidget(lbl_edge)
+        btn_ok = QPushButton("Aceptar")
+        btn_ok.clicked.connect(dlg.accept)
+        layout.addWidget(btn_ok)
+        dlg.setLayout(layout)
+        if dlg.exec_():
+            self.plot_histogram()
+
+
+    # === Bloque 9.2.8: Método para editar título y etiquetas del histograma ===
+
+    def choose_hist_labels(self):
+        """Diálogo para editar título y etiquetas de ejes del histograma."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Editar Labels del Histograma")
+        form = QFormLayout(dlg)
+
+        # Relleno seguro con valores por defecto si están vacíos
+        if not hasattr(self, "hist_title"):   self.hist_title = ""
+        if not hasattr(self, "hist_xlabel"):  self.hist_xlabel = ""
+        if not hasattr(self, "hist_ylabel"):  self.hist_ylabel = ""
+        if not hasattr(self, "hist_ylabel2"): self.hist_ylabel2 = ""
+
+        # Campos de texto para cada etiqueta
+        txt_title  = QLineEdit(self.hist_title)
+        txt_xlabel = QLineEdit(self.hist_xlabel)
+        txt_ylabel = QLineEdit(self.hist_ylabel)
+        txt_y2     = QLineEdit(self.hist_ylabel2)
+
+        form.addRow("Título:", txt_title)
+        form.addRow("Eje X (φ):", txt_xlabel)
+        form.addRow("Eje Y (wt %):", txt_ylabel)
+        form.addRow("Eje Y₂ (Acumulativa):", txt_y2)
+
+        btn_ok = QPushButton("Aceptar")
+        btn_ok.clicked.connect(dlg.accept)
+        form.addRow(btn_ok)
+
+        if dlg.exec_():
+            # Guardar los nuevos labels
+            self.hist_title   = txt_title.text()
+            self.hist_xlabel  = txt_xlabel.text()
+            self.hist_ylabel  = txt_ylabel.text()
+            self.hist_ylabel2 = txt_y2.text()
+            # Redibujar con los nuevos labels
+            self.plot_histogram()
+
+
+    # === Bloque 9.2.9: Métodos para ocultar/mostrar curvas ===
+    def toggle_hist_curve(self, show_hist: bool, show_acc: bool, show_poly: bool):
+        self.show_histogram = show_hist
+        self.show_cumulative = show_acc
+        self.show_frequency_polygon = show_poly
+        self.plot_histogram()
+
+
+
+          # === Bloque 9.3: Métodos de configuración y exportación ===
 
     def choose_method(self):
+        """Diálogo para cambiar el método de cálculo granulométrico."""
         dlg = QDialog(self)
         dlg.setWindowTitle("Elegir método de cálculo")
         layout = QVBoxLayout(dlg)
         combo = QComboBox()
         combo.addItems(METHODS.keys())
+        # Poner el texto actual seleccionado
         current = [k for k, v in METHODS.items() if v == self.current_method][0]
         combo.setCurrentText(current)
         layout.addWidget(QLabel("Método de cálculo estadístico:"))
         layout.addWidget(combo)
-        btn_ok = QPushButton("Aceptar"); btn_ok.clicked.connect(dlg.accept)
+        btn_ok = QPushButton("Aceptar")
+        btn_ok.clicked.connect(dlg.accept)
         layout.addWidget(btn_ok)
         if dlg.exec_():
+            # Al aceptar, guardamos el nuevo método y recargamos
             self.current_method = METHODS[combo.currentText()]
             self.load_file()
 
     def choose_theme(self):
+        """Diálogo para alternar entre tema oscuro o claro."""
         dlg = QDialog(self)
         dlg.setWindowTitle("Estilo de interfaz")
         layout = QVBoxLayout(dlg)
-        combo = QComboBox(); combo.addItems(["Oscuro (Fusion dark)", "Claro (Fusion light)"])
+        combo = QComboBox()
+        combo.addItems(["Oscuro (Fusion dark)", "Claro (Fusion light)"])
         combo.setCurrentIndex(0 if self.theme == "dark" else 1)
         layout.addWidget(QLabel("Selecciona el estilo de la interfaz:"))
         layout.addWidget(combo)
-        btn_ok = QPushButton("Aceptar"); btn_ok.clicked.connect(dlg.accept)
+        btn_ok = QPushButton("Aceptar")
+        btn_ok.clicked.connect(dlg.accept)
         layout.addWidget(btn_ok)
         if dlg.exec_():
             idx = combo.currentIndex()
             if idx == 0 and self.theme != "dark":
-                self.theme = "dark"; qApp.setStyleSheet(DARK_STYLESHEET)
+                self.theme = "dark"
+                qApp.setStyleSheet(DARK_STYLESHEET)
             elif idx == 1 and self.theme != "light":
-                self.theme = "light"; qApp.setStyleSheet(LIGHT_STYLESHEET)
+                self.theme = "light"
+                qApp.setStyleSheet(LIGHT_STYLESHEET)
 
     def export_canvas(self, canvas):
+        """
+        Abre un diálogo para guardar la figura.
+        Formatos soportados: PNG, TIFF, SVG, PDF.
+        """
         file, ext = QFileDialog.getSaveFileName(
-            self, "Guardar figura", "",
-            "PNG (*.png);;TIFF (*.tif);;SVG (*.svg);;PDF (*.pdf);;Adobe Illustrator (*.ai)"
+            self,
+            "Guardar figura",
+            "",
+            "PNG (*.png);;TIFF (*.tif);;SVG (*.svg);;PDF (*.pdf)"
         )
         if not file:
             return
+
+        # Asegurarnos de poner la extensión correcta
         if ext == "PNG (*.png)" and not file.lower().endswith(".png"):
-            file += ".png"; canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white"); return
-        if ext == "TIFF (*.tif)" and not file.lower().endswith(".tif"):
-            file += ".tif"; canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white"); return
-        if ext == "SVG (*.svg)" and not file.lower().endswith(".svg"):
-            file += ".svg"; canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white"); return
-        if ext == "PDF (*.pdf)" and not file.lower().endswith(".pdf"):
-            file += ".pdf"; canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white"); return
-        if ext == "Adobe Illustrator (*.ai)" and not file.lower().endswith(".ai"):
-            file += ".ai"; canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white"); return
-        canvas.figure.savefig(file, dpi=300, bbox_inches='tight', facecolor="white")
+            file += ".png"
+        elif ext == "TIFF (*.tif)" and not file.lower().endswith(".tif"):
+            file += ".tif"
+        elif ext == "SVG (*.svg)" and not file.lower().endswith(".svg"):
+            file += ".svg"
+        elif ext == "PDF (*.pdf)" and not file.lower().endswith(".pdf"):
+            file += ".pdf"
+
+        try:
+            canvas.figure.savefig(
+                file,
+                dpi=300,
+                bbox_inches='tight',
+                facecolor="white"
+            )
+        except ValueError as e:
+            QMessageBox.warning(
+                self,
+                "Error al guardar",
+                f"No se pudo guardar la figura en ese formato:\n{e}"
+            )
 
     def save_current_tab(self):
+        """Llama a export_canvas según la pestaña activa."""
         idx = self.tabs.currentIndex()
         if idx == 0:
             self.export_canvas(self.canvas_xy)
@@ -1089,52 +1454,68 @@ class MainWindow(QMainWindow):
             self.export_canvas(self.canvas_walker)
         elif idx == 2:
             self.export_canvas(self.canvas_gk)
-        # === Bloque 9.4: Métodos de bins, procesamiento y combinación tamiz–láser ===
+        else:
+            # si agregaste más pestañas, añádelas aquí
+            pass
+
+    # === Bloque 9.4: Métodos de bins, procesamiento y combinación tamiz–láser ===
 
     def obtener_bins_tamiz(self, step=None):
+        """
+        Genera bins φ para la base de tamiz.
+        """
         phi = self.df_data.iloc[:, 0].values
         mn, mx = np.floor(phi.min()), np.ceil(phi.max())
         if step is None:
             step = np.min(np.diff(np.sort(np.unique(phi)))) if len(phi) > 1 else 1.0
         bins = np.arange(mn, mx + step, step)
-        bins = np.round(bins / step) * step  # Corrige posibles flotantes
+        bins = np.round(bins / step) * step
         return bins
 
     def procesar_laser(self, df_laser, bins):
+        """
+        Prepara la lista (phi, Wt) de láser agrupada previamente.
+        """
         required_cols = ["phi", "Sample", "Wt"]
         if not all(col in df_laser.columns for col in required_cols):
             raise ValueError(f"[procesar_laser] Columnas faltantes: {df_laser.columns}")
         phi_vals = df_laser["phi"].astype(float).values
         wt_vals  = df_laser["Wt"].astype(float).values
-        # Ya vienen en % y agrupados, se devuelven tal cual
         return list(zip(phi_vals, wt_vals))
 
-    def combinar_metodo_1(self, tamiz, laser_phi, phi_cut):
+    def combinar_metodo_1(self, tamiz, laser_phi, phi_extraido):
         """
-        Método 1: φ < phi_cut ➔ tamiz; φ >= phi_cut ➔ láser; luego normalizar a 100%.
+        Método 1: Hibridar datos eliminando los φ ≥ φ_extraído.
+        1. Suma tamiz para φ ≥ φ_extraído -> T_tamiz
+        2. Filtra tamiz (φ < umbral) y láser (φ ≥ umbral)
+        3. Escala láser para que su suma sea T_tamiz
+        4. Concatena y ordena resultado
         """
-        below    = [(p, w) for p, w in tamiz      if p <  phi_cut]
-        above    = [(p, w) for p, w in laser_phi if p >= phi_cut]
-        combined = below + above
-        total    = sum(w for _, w in combined) or 1.0
-        normalized = [(p, w * 100.0 / total) for p, w in combined]
-        return sorted(normalized, key=lambda x: x[0])
+        # 1. Total de tamiz a reemplazar
+        T_tamiz = sum(w for p, w in tamiz if p >= phi_extraido)
+        # 2. Filtrado de curvas
+        tamiz_filtrado  = [(p, w) for p, w in tamiz      if p <  phi_extraido]
+        laser_filtrado = [(p, w) for p, w in laser_phi  if p >= phi_extraido]
+        # 3. Normalización de láser
+        T_laser = sum(w for p, w in laser_filtrado) or 1.0
+        factor  = T_tamiz / T_laser
+        laser_norm = [(p, w * factor) for p, w in laser_filtrado]
+        # 4. Construir y devolver la curva híbrida
+        combinado = tamiz_filtrado + laser_norm
+        return sorted(combinado, key=lambda x: x[0])
 
-    def combinar_metodo_2(self, tamiz, laser_phi, phi_cut):
+    def combinar_metodo_2(self, tamiz, laser_phi, phi_extraido):
         """
-        Método 2: φ < phi_cut intacto; φ >= phi_cut sumando tamiz+láser y escalando.
+        Método 2: Tamiz intacto (φ<umbral), luego suma tamiz+láser y escala al 100%.
         """
-        part1 = [(p, w) for p, w in tamiz      if p <  phi_cut]
+        part1 = [(p, w) for p, w in tamiz if p < phi_extraido]
         X1    = sum(w for _, w in part1)
-        pts   = sorted(
-            set(p for p, _ in tamiz      if p >= phi_cut) |
-            set(p for p, _ in laser_phi if p >= phi_cut)
-        )
-        part2 = []
-        for p in pts:
-            w_t = next((w for q, w in tamiz      if q == p), 0.0)
-            w_l = next((w for q, w in laser_phi if q == p), 0.0)
-            part2.append((p, w_t + w_l))
+        pts   = sorted(set(p for p, _ in tamiz if p >= phi_extraido) |
+                        set(p for p, _ in laser_phi if p >= phi_extraido))
+        part2 = [(p,
+                  (next((w for q, w in tamiz    if q==p),0) +
+                   next((w for q, w in laser_phi if q==p),0)))
+                 for p in pts]
         X2 = sum(w for _, w in part2)
         if X2 == 0:
             return part1
@@ -1143,6 +1524,10 @@ class MainWindow(QMainWindow):
         return sorted(part1 + scaled, key=lambda x: x[0])
 
     def combinar_tamiz_laser(self):
+        """
+        Ventana de emparejamiento y creación de base híbrida.
+        Lee φ_extraído de la tabla MatchDialog para cada par muestra.
+        """
         if self.df_data is None or self.df_laser is None:
             QMessageBox.warning(self, "Error", "Carga ambas bases de datos primero.")
             return
@@ -1150,90 +1535,81 @@ class MainWindow(QMainWindow):
         dlg_map = MatchDialog(self.df_data, self.df_laser, self)
         if not dlg_map.exec_():
             return
-        mapping = dlg_map.pairs
+
+        # Lee pares y φ_extraído desde la tabla del diálogo
+        mapping = []
+        for row in range(dlg_map.table.rowCount()):
+            sample_t = dlg_map.table.item(row, 0).text()
+            sample_l = dlg_map.table.item(row, 1).text()
+            phi_extraido = dlg_map.table.cellWidget(row, 2).value()
+            mapping.append((sample_t, sample_l, phi_extraido))
         if not mapping:
             QMessageBox.warning(self, "Error", "No se emparejaron muestras.")
             return
 
-        # Sólo elegir método
+        # Selección de método
         dlg2 = QDialog(self)
         dlg2.setWindowTitle("Método de combinación")
         ly = QVBoxLayout(dlg2)
         mg = QButtonGroup(dlg2)
-        rb1 = QRadioButton("Método 1: tamiz<cut + láser≥cut")
-        rb2 = QRadioButton("Método 2: tamiz intacto + sumar+escalar")
-        rb1.setChecked(True); mg.addButton(rb1); mg.addButton(rb2)
+        rb1 = QRadioButton("Reemplazar fracción fina por láser escalado")
+        rb2 = QRadioButton("Reemplazar fracción fina por láser + tamiz fino escalado")
+        rb1.setChecked(True)
+        mg.addButton(rb1); mg.addButton(rb2)
         ly.addWidget(rb1); ly.addWidget(rb2)
         btn_ok = QPushButton("Combinar"); btn_ok.clicked.connect(dlg2.accept)
         ly.addWidget(btn_ok)
         if not dlg2.exec_():
             return
-
-        metodo  = 1 if rb1.isChecked() else 2
-        phi_cut = self.laser_step
-        bins    = self.obtener_bins_tamiz(step=phi_cut)
+        metodo = 1 if rb1.isChecked() else 2
 
         resultados = []
-        for rt, rl in mapping:
-            sample_t = dlg_map.model_t._df.iloc[rt, 0]
-            sample_l = dlg_map.model_l._df.iloc[rl, 0]
-
-            # Datos de tamiz
-            df_t  = self.df_data[self.df_data.iloc[:,1] == sample_t]
+        for sample_t, sample_l, phi_extraido in mapping:
+            # Datos de tamiz y láser
+            df_t = self.df_data[self.df_data.iloc[:,1]==sample_t]
             tamiz = list(zip(df_t.iloc[:,0], df_t.iloc[:,2]))
-
-            # Datos de láser (filtrado correctamente)
-            df_l      = self.df_laser[self.df_laser["Sample"] == sample_l]
+            df_l = self.df_laser[self.df_laser["Sample"]==sample_l]
             laser_phi = list(zip(df_l["phi"], df_l["Wt"]))
 
-            # Aplicar método
-            if metodo == 1:
-                comb = self.combinar_metodo_1(tamiz, laser_phi, phi_cut)
+            # Aplica método
+            if metodo==1:
+                comb = self.combinar_metodo_1(tamiz, laser_phi, phi_extraido)
             else:
-                comb = self.combinar_metodo_2(tamiz, laser_phi, phi_cut)
+                comb = self.combinar_metodo_2(tamiz, laser_phi, phi_extraido)
 
             for p, w in comb:
-                resultados.append({
-                    "phi":           p,
-                    "wt%":           w,
-                    "Tamiz Sample":  sample_t,
-                    "Laser Sample":  sample_l
-                })
+                resultados.append({"phi":p, "wt%":w,
+                                   "Tamiz Sample":sample_t,
+                                   "Laser Sample":sample_l})
 
-        # Construir DataFrame híbrido y agregar columna Group
+        # Arma df_hybrid y recalcula parámetros
         self.df_hybrid = pd.DataFrame(resultados)
-        groups = []
-        for sample in self.df_hybrid["Tamiz Sample"]:
-            grp = self.df_data[self.df_data.iloc[:,1] == sample].iloc[0,3]
-            groups.append(grp)
-        self.df_hybrid["Group"] = groups
+        self.df_hybrid["Group"] = [
+            self.df_data[self.df_data.iloc[:,1]==s].iloc[0,3]
+            for s in self.df_hybrid["Tamiz Sample"]
+        ]
         self.act_viewdb_hybrid.setEnabled(True)
-
-        # Calcular parámetros híbridos
         params_h = []
         for sample, grp in self.df_hybrid.groupby("Tamiz Sample"):
             phi_vals = grp["phi"].tolist()
             wt_vals  = grp["wt%"].tolist()
             gval     = grp["Group"].iloc[0]
             p        = calculate_parameters(phi_vals, wt_vals, self.current_method)
-            row      = {"Sample": sample, self.group_col: gval, **p}
-            params_h.append(row)
+            params_h.append({"Sample":sample, self.group_col:gval, **p})
         self.param_results_hybrid = pd.DataFrame(params_h)
 
-        # ——— Actualiza listas de grupos, colores y selecciones ———
+        # Actualiza UI y consola
         self._update_all_groups_and_colors()
-
-        # Imprimir en consola
-        txt = "\nParámetros granulométricos (Híbrido):\n\n"
+        self._update_hist_samples()
+        txt="\nParámetros granulométricos (Híbrido):\n\n"
         for _, r in self.param_results_hybrid.iterrows():
-            txt += f"Sample: {r['Sample']} (Group: {r[self.group_col]})\n"
-            txt += f"  Mediana (φ50): {r['median']:.4f}\n"
-            txt += f"  Sorting (σ): {r['sigma']:.4f}\n"
-            txt += f"  Asimetría: {r['skewness']:.4f}\n"
-            txt += f"  Curtosis: {r['kurtosis']:.4f}\n"
-            txt += f"  Media (Mz): {r['mean']:.4f}\n\n"
+            txt+=f"Sample: {r['Sample']} (Group: {r[self.group_col]})\n"
+            txt+=f"  Mediana (φ50): {r['median']:.4f}\n"
+            txt+=f"  Sorting (σ): {r['sigma']:.4f}\n"
+            txt+=f"  Asimetría: {r['skewness']:.4f}\n"
+            txt+=f"  Curtosis: {r['kurtosis']:.4f}\n"
+            txt+=f"  Media (Mz): {r['mean']:.4f}\n\n"
         self.txt_console.append(txt)
-
         QMessageBox.information(self, "Éxito", "Base de datos tamiz+láser creada.")
 
 # === Bloque 10: Main principal ===
@@ -1246,3 +1622,4 @@ if __name__ == "__main__":
     mw = MainWindow()
     mw.show()
     sys.exit(app.exec_())
+
