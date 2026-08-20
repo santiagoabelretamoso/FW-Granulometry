@@ -12,30 +12,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Patch website
-        shell: python
+      - name: Patch website and poster
         run: |
-          from pathlib import Path
-          import re
-          p = Path('docs/index.html')
-          s = p.read_text(encoding='utf-8')
-          # About section: remove the left profile card and keep only the text card.
-          s = re.sub(r'<section class="section shell" id="about">[\s\S]*?</section>', '''<section class="section shell" id="about"><article class="about-card reveal" style="max-width:none;width:100%"><p><strong>Santiago Abel Retamoso</strong> is a geologist and volcanologist. He is currently pursuing a PhD in Geological Sciences at the National University of Salta (Salta, Argentina) and is based at the Bariloche Atomic Centre (Río Negro, Argentina). He is also completing a Diploma in Data Science at the National Technological University (Buenos Aires, Argentina). His research focuses on silica-rich explosive phreatomagmatic eruptions in continental settings.</p><p><strong>FW-Granulometry</strong> was developed as a scientific tool for working with grain-size and componentry data from tephra and sedimentary deposits. Its aim is to facilitate the processing and visualization of robust datasets within a single workflow.</p><div class="socials"><a href="https://github.com/santiagoabelretamoso" target="_blank" rel="noreferrer">GitHub</a><a href="https://orcid.org/0009-0003-7811-1704" target="_blank" rel="noreferrer">ORCID</a><a href="https://scholar.google.com/scholar?q=%22Santiago+Abel+Retamoso%22" target="_blank" rel="noreferrer">Google Scholar</a><a href="mailto:santiagoabelretamoso@gmail.com">Contact</a><a href="https://www.linkedin.com/in/santiago-abel-retamoso-0348021a8/" target="_blank" rel="noreferrer">LinkedIn</a><a href="https://www.researchgate.net/profile/Santiago-Retamoso?ev=hdr_xprf" target="_blank" rel="noreferrer">ResearchGate</a></div></article></section>''', s, count=1)
-          # Use a real raster preview for the RAS poster.
-          s = s.replace('assets/ras2025-poster.svg', 'assets/ras2025-poster.jpg')
-          # Remove obsolete two-column About styling if it remains.
-          s = s.replace('.about-grid{display:grid;grid-template-columns:.72fr 1.28fr;gap:18px;align-items:stretch}', '.about-grid{display:block}')
-          p.write_text(s, encoding='utf-8')
-      - name: Create poster JPG from current embedded SVG
-        shell: python
-        run: |
+          python - <<'PY'
           from pathlib import Path
           import re, base64
+
+          p = Path('docs/index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Keep only the right-hand About text card.
+          about = '''<section class="section shell" id="about"><article class="about-card reveal" style="max-width:none;width:100%"><p><strong>Santiago Abel Retamoso</strong> is a geologist and volcanologist. He is currently pursuing a PhD in Geological Sciences at the National University of Salta (Salta, Argentina) and is based at the Bariloche Atomic Centre (Río Negro, Argentina). He is also completing a Diploma in Data Science at the National Technological University (Buenos Aires, Argentina). His research focuses on silica-rich explosive phreatomagmatic eruptions in continental settings.</p><p><strong>FW-Granulometry</strong> was developed as a scientific tool for working with grain-size and componentry data from tephra and sedimentary deposits. Its aim is to facilitate the processing and visualization of robust datasets within a single workflow.</p><div class="socials"><a href="https://github.com/santiagoabelretamoso" target="_blank" rel="noreferrer">GitHub</a><a href="https://orcid.org/0009-0003-7811-1704" target="_blank" rel="noreferrer">ORCID</a><a href="https://scholar.google.com/scholar?q=%22Santiago+Abel+Retamoso%22" target="_blank" rel="noreferrer">Google Scholar</a><a href="mailto:santiagoabelretamoso@gmail.com">Contact</a><a href="https://www.linkedin.com/in/santiago-abel-retamoso-0348021a8/" target="_blank" rel="noreferrer">LinkedIn</a><a href="https://www.researchgate.net/profile/Santiago-Retamoso?ev=hdr_xprf" target="_blank" rel="noreferrer">ResearchGate</a></div></article></section>'''
+          s, n = re.subn(r'<section class="section shell" id="about">[\s\S]*?</section>', about, s, count=1)
+          if n != 1:
+              raise SystemExit('About section not found')
+
+          # Point poster buttons/preview to a real JPEG.
+          s = s.replace('assets/ras2025-poster.svg', 'assets/ras2025-poster.jpg')
+          p.write_text(s, encoding='utf-8')
+
+          # Decode the JPEG already embedded in the SVG into a normal file.
           src = Path('docs/assets/ras2025-poster.svg').read_text(encoding='utf-8')
-          m = re.search(r'base64,([^"\']+)', src)
-          if not m:
-              raise SystemExit('No embedded JPEG found in poster SVG')
-          Path('docs/assets/ras2025-poster.jpg').write_bytes(base64.b64decode(m.group(1)))
+          marker = 'base64,'
+          start = src.find(marker)
+          if start < 0:
+              raise SystemExit('Embedded poster JPEG not found')
+          start += len(marker)
+          end = src.find('"', start)
+          if end < 0:
+              raise SystemExit('Embedded poster JPEG end not found')
+          jpg = base64.b64decode(src[start:end])
+          Path('docs/assets/ras2025-poster.jpg').write_bytes(jpg)
+          print('patched', len(jpg), 'bytes')
+          PY
       - name: Commit fixes
         run: |
           git config user.name "santiagoabelretamoso"
