@@ -6746,8 +6746,10 @@ class ComponentryPreview(QMainWindow):
         """
         self.sample_dbs = dict(sample_dbs or {})
         self.source_context = source_context or getattr(self, "source_context", {}) or {}
+        # Samples are authoritative: only derive the global view here. Pushing
+        # globals back would overwrite per-sample component types on every
+        # refresh (same rule as when a project is opened).
         self._sync_global_from_samples()
-        self._push_global_to_all_samples()
         self._reload_sample_combo(select_first=True)
         self.refresh_component_table_from_global()
         self._refresh_hist_filter_value_options()
