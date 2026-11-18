@@ -5,7 +5,7 @@ Software de escritorio para análisis granulométrico: parámetros estadísticos
 ## Requisitos
 
 - Python 3.9 o superior
-- Dependencias: `pip install -r requirements.txt`
+- Dependencias: `pip install -r requirements.txt` (PyQt5, numpy, pandas, matplotlib, scipy, openpyxl, xlsxwriter, xlrd para archivos .xls)
 
 ## Instalación y uso
 
