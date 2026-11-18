@@ -37,3 +37,7 @@ Los complementos se instalan desde el menú *Complementos* de Componentry y se c
 ## Contacto
 
 santiagoabelretamoso@gmail.com
+
+## Licencia
+
+GNU General Public License v3.0. Ver [LICENSE](LICENSE).
