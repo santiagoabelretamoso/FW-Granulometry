@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="title">Unificación láser-tamizado · FW-Granulometry</title>
+<meta name="description" content="Unificación de datos de láser y tamizado con los métodos de FW-Granulometry 2.0, directamente en el navegador.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<link rel="preload" href="../assets/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:400 800;font-display:swap;src:url("../assets/fonts/plus-jakarta-sans-latin-ext.woff2") format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:400 800;font-display:swap;src:url("../assets/fonts/plus-jakarta-sans-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --ink:#0b2540;
+  --text:#2f4760;
+  --muted:#566d86;
+  --faint:#8aa0b5;
+  --line:#dbe7f1;
+  --line2:#e7eff6;
+  --soft:#f4f9fd;
+  --accent:#0667bf;
+  --grad:linear-gradient(100deg,#06d6fe 0%,#0ab4ff 50%,#1a8bff 100%);
+  --on-grad:#04213a;
+  --err:#b42318;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;background:#fff}
+body{
+  margin:0;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;position:relative;overflow-x:clip;
+  background:
+    radial-gradient(760px 420px at 50% -8%,rgba(6,214,254,.16),transparent 68%),
+    radial-gradient(620px 420px at 98% 0%,rgba(26,139,255,.10),transparent 66%),
+    #ffffff;
+  color:var(--text);
+  font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+body::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--grad)}
+a{color:inherit}
+a:focus-visible,button:focus-visible,summary:focus-visible,label.btn:has(input:focus-visible){outline:3px solid #1592ff;outline-offset:2px;border-radius:10px}
+
+.top{max-width:1180px;width:100%;margin:0 auto;padding:22px 24px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:800;letter-spacing:-.02em;font-size:1rem}
+.brand img{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:#fff;padding:5px;box-shadow:0 8px 18px -12px rgba(21,146,255,.6)}
+.brand .back{display:block;font-size:.76rem;font-weight:600;color:var(--muted);letter-spacing:0;line-height:1.2}
+.brand span{line-height:1.15}
+.lang{display:flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.85);border:1px solid var(--line);box-shadow:0 1px 2px rgba(11,37,64,.05)}
+.lang button{font:inherit;font-size:.78rem;font-weight:800;letter-spacing:.04em;border:0;background:none;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--grad);color:var(--on-grad)}
+
+.intro{max-width:1180px;width:100%;margin:0 auto;padding:22px 24px 4px}
+h1{margin:0;font-size:clamp(1.75rem,1.25rem + 1.7vw,2.5rem);line-height:1.08;letter-spacing:-.04em;font-weight:800;color:var(--ink)}
+.intro p{margin:8px 0 0;max-width:48em;color:var(--muted);text-wrap:pretty}
+
+main{flex:1;max-width:1180px;width:100%;margin:0 auto;padding:18px 24px 30px;display:grid;gap:18px;align-content:start}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:920px){.row2{grid-template-columns:minmax(0,1fr)}}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 18px 16px;min-width:0;box-shadow:0 1px 2px rgba(11,37,64,.04),0 18px 40px -30px rgba(21,146,255,.45)}
+.card-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.num{flex:none;width:30px;height:30px;border-radius:10px;background:var(--grad);color:var(--on-grad);font-weight:800;font-size:.95rem;display:grid;place-items:center;box-shadow:0 6px 14px -8px rgba(21,146,255,.9)}
+.ttl{flex:1 1 170px;min-width:0}
+h2{margin:0;font-size:1.13rem;line-height:1.3;color:var(--ink);font-weight:800;letter-spacing:-.015em}
+.hint{margin:2px 0 0;font-size:.86rem;color:var(--muted)}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+
+.btn{font:inherit;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border-radius:10px;border:1px solid #cbdbea;background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap;text-decoration:none;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.btn:hover{border-color:#8fbce0}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{border:0;background:var(--grad);color:var(--on-grad);box-shadow:0 8px 18px -12px rgba(21,146,255,.95),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn.primary:hover{transform:translateY(-1px)}
+.btn.quiet{border-color:transparent;background:none;color:var(--muted)}
+.btn.quiet:hover{color:var(--ink);border-color:var(--line)}
+label.btn{position:relative}
+.btn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.btn.load{height:40px;padding:0 18px;border-radius:12px;font-size:.92rem}
+.btn.load[data-dirty]{box-shadow:0 0 0 3px rgba(21,146,255,.28),0 8px 18px -12px rgba(21,146,255,.95)}
+
+.grid{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:330px;background:#fff;overscroll-behavior:contain}
+.grid table{border-collapse:separate;border-spacing:0;font-size:.84rem;font-variant-numeric:tabular-nums}
+.grid th{position:sticky;background:#f6f9fc;color:var(--faint);font-weight:600;font-size:.72rem;text-align:center;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);padding:0 6px;user-select:none;-webkit-user-select:none}
+.grid thead th{top:0;z-index:2;height:24px}
+.grid tbody th{left:0;z-index:1;min-width:36px}
+.grid thead th.corner{left:0;z-index:3}
+.grid td{padding:0;border-right:1px solid var(--line2);border-bottom:1px solid var(--line2);background:#fff}
+.grid input{display:block;width:118px;height:29px;border:0;border-radius:0;padding:0 8px;font:inherit;color:var(--ink);background:transparent;outline:none}
+.grid input:focus{box-shadow:inset 0 0 0 2px #1592ff;background:#f3f9ff}
+.grid tr.hdr td{background:#f1f7fd}
+.grid tr.hdr input{font-weight:700}
+.grid input::placeholder{color:#a7bbcd;font-weight:500}
+
+.foot{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap}
+.foot .opts{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;min-width:0}
+.lbl{font-size:.82rem;font-weight:700;color:var(--muted)}
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:#f1f6fb;border:1px solid var(--line)}
+.seg button{font:inherit;font-size:.8rem;font-weight:800;border:0;background:none;color:var(--muted);padding:4px 11px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(11,37,64,.14)}
+details.fmt{font-size:.82rem;color:var(--muted);min-width:0}
+details.fmt summary{cursor:pointer;font-weight:700;color:var(--accent);list-style-position:inside}
+details.fmt p{margin:6px 0 0;max-width:44em}
+details.fmt b{color:var(--ink)}
+
+.status{margin-top:12px;font-size:.88rem}
+.status:empty{display:none}
+.msg{display:flex;align-items:flex-start;gap:8px;color:var(--ink)}
+.msg svg{width:18px;height:18px;flex:none;margin-top:1px;color:#10a27a}
+.msg.err{color:var(--err)}
+.msg.err svg{color:var(--err)}
+.msg .sub{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--soft);border:1px solid var(--line);font-size:.8rem;font-weight:700;color:var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip em{font-style:normal;font-weight:500;color:var(--muted)}
+
+.card.soon{background:rgba(255,255,255,.72);border-style:dashed;box-shadow:none}
+.soon-note{margin:10px 0 0 42px;font-size:.86rem;color:var(--faint)}
+
+dialog{border:0;border-radius:18px;padding:22px 22px 18px;max-width:460px;width:calc(100% - 32px);color:var(--text);box-shadow:0 30px 80px -20px rgba(11,37,64,.45)}
+dialog::backdrop{background:rgba(11,37,64,.3);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+dialog h3{margin:0;font-size:1.08rem;line-height:1.3;color:var(--ink);font-weight:800}
+dialog p{margin:8px 0 0;font-size:.92rem;overflow-wrap:anywhere}
+dialog .acts{margin-top:18px;display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+footer{padding:10px 24px 22px;text-align:center;font-size:.84rem;line-height:1.55;color:var(--muted)}
+footer p{margin:0}
+footer .by{color:#173654}
+footer .by strong{font-weight:800;color:var(--ink)}
+footer .sep{margin:0 8px;color:#9fb3c6}
+footer .nw{white-space:nowrap}
+
+@media (max-width:560px){
+  .top{padding:16px 16px 0}
+  .brand img{width:32px;height:32px;border-radius:10px}
+  .lang button{padding:4px 9px;font-size:.72rem}
+  .intro{padding:16px 16px 0}
+  .intro p{font-size:.92rem}
+  main{padding:14px 16px 22px;gap:14px}
+  .card{padding:14px 14px 12px;border-radius:16px}
+  .soon-note{margin-left:0}
+  .foot{align-items:stretch}
+  .foot .btn.load{width:100%}
+  .grid{max-height:300px}
+  .grid input{width:100px}
+  footer{padding:6px 16px 14px;font-size:.78rem}
+}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn.primary:hover{transform:none}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="../">
+    <img src="../assets/icono-256.png" width="36" height="36" alt="">
+    <span>FW-Granulometry<span class="back" data-i18n="back">Volver a la página principal</span></span>
+  </a>
+  <div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es">ES</button><button type="button" data-lang="en">ENG</button></div>
+</header>
+
+<section class="intro">
+  <h1 data-i18n="h1">Unificación láser-tamizado</h1>
+  <p data-i18n="lead">Cargá los datos de tamizado y de láser, elegí el método y obtené el histograma unificado. Usa los mismos cálculos y el mismo gráfico que FW-Granulometry 2.0, y todo se procesa en tu navegador.</p>
+</section>
+
+<main>
+  <div class="row2">
+    <section class="card" id="card-sieve" aria-labelledby="t-sieve">
+      <div class="card-head">
+        <span class="num" aria-hidden="true">1</span>
+        <div class="ttl"><h2 id="t-sieve" data-i18n="sieve">Tamizado</h2><p class="hint" data-i18n="sieveHint">φ y % en peso por muestra</p></div>
+        <div class="tools">
+          <label class="btn primary"><input type="file" accept=".xlsx,.xls,.xlsm,.csv" data-file="sieve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M5 19.5h14"/></svg><span data-i18n="upload">Subir Excel</span></label>
+          <button type="button" class="btn" data-example="sieve" data-i18n="example">Ejemplo</button>
+          <button type="button" class="btn quiet" data-clear="sieve" data-i18n="clear">Vaciar</button>
+        </div>
+      </div>
+      <div class="grid" id="grid-sieve"></div>
+      <div class="foot">
+        <div class="opts">
+          <details class="fmt"><summary data-i18n="formats">Formatos aceptados</summary><p data-i18n="fmtSieve"></p></details>
+        </div>
+        <button type="button" class="btn primary load" id="load-sieve" data-i18n="loadSieve">Cargar tamizado</button>
+      </div>
+      <div class="status" id="st-sieve" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card" id="card-laser" aria-labelledby="t-laser">
+      <div class="card-head">
+        <span class="num" aria-hidden="true">2</span>
+        <div class="ttl"><h2 id="t-laser" data-i18n="laser">Láser</h2><p class="hint" data-i18n="laserHint">Diámetro (μm) y % por muestra</p></div>
+        <div class="tools">
+          <label class="btn primary"><input type="file" accept=".xlsx,.xls,.xlsm,.csv" data-file="laser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M5 19.5h14"/></svg><span data-i18n="upload">Subir Excel</span></label>
+          <button type="button" class="btn" data-example="laser" data-i18n="example">Ejemplo</button>
+          <button type="button" class="btn quiet" data-clear="laser" data-i18n="clear">Vaciar</button>
+        </div>
+      </div>
+      <div class="grid" id="grid-laser"></div>
+      <div class="foot">
+        <div class="opts">
+          <span class="lbl" id="lbl-step" data-i18n="step">Paso φ</span>
+          <div class="seg" role="group" aria-labelledby="lbl-step"><button type="button" data-step="1" aria-pressed="true">1,0</button><button type="button" data-step="0.5" aria-pressed="false">0,5</button></div>
+          <details class="fmt"><summary data-i18n="formats">Formatos aceptados</summary><p data-i18n="fmtLaser"></p></details>
+        </div>
+        <button type="button" class="btn primary load" id="load-laser" data-i18n="loadLaser">Cargar láser</button>
+      </div>
+      <div class="status" id="st-laser" role="status" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <section class="card soon" id="card-merge" aria-labelledby="t-merge">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">3</span>
+      <div class="ttl"><h2 id="t-merge" data-i18n="merge">Unificar</h2><p class="hint" data-i18n="mergeHint">Muestra de tamizado, muestra de láser, método y φ*</p></div>
+    </div>
+    <p class="soon-note" data-i18n="soon">Se completa en la próxima etapa.</p>
+  </section>
+
+  <section class="card soon" id="card-hist" aria-labelledby="t-hist">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">4</span>
+      <div class="ttl"><h2 id="t-hist" data-i18n="hist">Histogramas</h2><p class="hint" data-i18n="histHint">Tamizado, láser y unificado, con el diseño del FW</p></div>
+    </div>
+    <p class="soon-note" data-i18n="soon">Se completa en la próxima etapa.</p>
+  </section>
+</main>
+
+<footer>
+  <p class="by">by <strong>Santiago Abel Retamoso</strong><span class="sep">·</span><span data-i18n="fellow">Becario CONICET</span></p>
+  <p>Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span></p>
+  <p>Universidad Nacional de Salta</p>
+</footer>
+
+<dialog id="dlg" aria-labelledby="dlg-t">
+  <h3 id="dlg-t"></h3>
+  <p id="dlg-p"></p>
+  <div class="acts"><button type="button" class="btn" id="dlg-no"></button><button type="button" class="btn primary" id="dlg-yes"></button></div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ */
+  /* Textos                                                              */
+  /* ------------------------------------------------------------------ */
+  var T = {
+    es: {
+      title: "Unificación láser-tamizado · FW-Granulometry",
+      back: "Volver a la página principal",
+      h1: "Unificación láser-tamizado",
+      lead: "Cargá los datos de tamizado y de láser, elegí el método y obtené el histograma unificado. Usa los mismos cálculos y el mismo gráfico que FW-Granulometry 2.0, y todo se procesa en tu navegador.",
+      sieve: "Tamizado", sieveHint: "φ y % en peso por muestra",
+      laser: "Láser", laserHint: "Diámetro (μm) y % por muestra",
+      upload: "Subir Excel", example: "Ejemplo", clear: "Vaciar",
+      formats: "Formatos aceptados",
+      fmtSieve: "<b>Ancho:</b> la columna A tiene los φ (múltiplos de 0,5) y cada muestra va en una columna, con su nombre en la fila 1. La fila 2 puede tener el grupo de cada muestra. <b>Por filas:</b> exactamente 4 columnas, φ | Muestra | Peso | Grupo. Escribí en la grilla o pegá desde Excel con Ctrl+V.",
+      fmtLaser: "<b>Ancho:</b> la columna A tiene los diámetros en μm y cada muestra va en una columna, con su nombre en la fila 1. La fila 2 puede tener el grupo de cada muestra. <b>Por filas:</b> columnas con encabezados de muestra, diámetro (μm), porcentaje y grupo. Escribí en la grilla o pegá desde Excel con Ctrl+V.",
+      loadSieve: "Cargar tamizado", loadLaser: "Cargar láser",
+      step: "Paso φ",
+      merge: "Unificar", mergeHint: "Muestra de tamizado, muestra de láser, método y φ*",
+      hist: "Histogramas", histHint: "Tamizado, láser y unificado, con el diseño del FW",
+      soon: "Se completa en la próxima etapa.",
+      fellow: "Becario CONICET",
+      phSieve: ["φ", "Muestra 1", "Muestra 2", "Muestra 3"],
+      phLaser: ["Diámetro (μm)", "Muestra 1", "Muestra 2"],
+      samples: function (n) { return n === 1 ? "1 muestra cargada" : n + " muestras cargadas"; },
+      fmtWide: "formato ancho", fmtRows: "formato por filas",
+      normalized: "normalizadas a 100 %",
+      bins: function (n, s) { return n + (n === 1 ? " intervalo" : " intervalos") + " de " + s + " φ"; },
+      reading: "Leyendo el archivo…",
+      errEmpty: "La grilla está vacía.",
+      errFile: "No se pudo leer el archivo.",
+      errSieveFmt: "Los datos no coinciden con ninguno de los dos formatos de tamizado del FW. Revisá que los φ sean múltiplos de 0,5 y que la fila 1 tenga los nombres de las muestras.",
+      errLaserCols: "El láser necesita al menos dos columnas: diámetro y una muestra.",
+      errLaserFmt: "No se reconoce el formato del láser. La columna A tiene que tener diámetros en μm, o los encabezados tienen que indicar muestra, diámetro (μm), porcentaje y grupo.",
+      errLaserGroup: "Falta al menos un valor en la columna de grupo del láser.",
+      errLaserBin: "No hay diámetros y porcentajes válidos para agrupar por φ.",
+      normTitle: "Los datos de tamizado no suman 100 %",
+      normText: function (n, list) { return "Muestras afectadas (" + n + "): " + list + ". ¿Querés normalizarlas a 100 %?"; },
+      yes: "Sí, normalizar", no: "No"
+    },
+    en: {
+      title: "Laser and sieve merging · FW-Granulometry",
+      back: "Back to the main page",
+      h1: "Laser and sieve merging",
+      lead: "Load your sieve and laser data, choose the method and get the merged histogram. It uses the same calculations and the same plot as FW-Granulometry 2.0, and everything runs in your browser.",
+      sieve: "Sieve", sieveHint: "φ and weight % per sample",
+      laser: "Laser", laserHint: "Diameter (μm) and % per sample",
+      upload: "Upload Excel", example: "Example", clear: "Clear",
+      formats: "Accepted formats",
+      fmtSieve: "<b>Wide:</b> column A holds the φ values (multiples of 0.5) and each sample goes in its own column, with its name in row 1. Row 2 may hold each sample's group. <b>Row-wise:</b> exactly 4 columns, φ | Sample | Weight | Group. Type in the grid or paste from Excel with Ctrl+V.",
+      fmtLaser: "<b>Wide:</b> column A holds the diameters in μm and each sample goes in its own column, with its name in row 1. Row 2 may hold each sample's group. <b>Row-wise:</b> columns headed sample, diameter (μm), percent and group. Type in the grid or paste from Excel with Ctrl+V.",
+      loadSieve: "Load sieve data", loadLaser: "Load laser data",
+      step: "φ step",
+      merge: "Merge", mergeHint: "Sieve sample, laser sample, method and φ*",
+      hist: "Histograms", histHint: "Sieve, laser and merged, with the FW design",
+      soon: "Coming in the next step.",
+      fellow: "CONICET Fellow",
+      phSieve: ["φ", "Sample 1", "Sample 2", "Sample 3"],
+      phLaser: ["Diameter (μm)", "Sample 1", "Sample 2"],
+      samples: function (n) { return n === 1 ? "1 sample loaded" : n + " samples loaded"; },
+      fmtWide: "wide format", fmtRows: "row-wise format",
+      normalized: "normalized to 100%",
+      bins: function (n, s) { return n + (n === 1 ? " bin" : " bins") + " of " + s + " φ"; },
+      reading: "Reading the file…",
+      errEmpty: "The grid is empty.",
+      errFile: "The file could not be read.",
+      errSieveFmt: "The data do not match either of the FW sieve formats. Check that the φ values are multiples of 0.5 and that row 1 holds the sample names.",
+      errLaserCols: "Laser data need at least two columns: diameter and one sample.",
+      errLaserFmt: "The laser format was not recognized. Column A must hold diameters in μm, or the headers must name sample, diameter (μm), percent and group.",
+      errLaserGroup: "At least one value is missing in the laser group column.",
+      errLaserBin: "There are no valid diameters and percents to bin by φ.",
+      normTitle: "Sieve data do not add up to 100%",
+      normText: function (n, list) { return "Affected samples (" + n + "): " + list + ". Do you want to normalize them to 100%?"; },
+      yes: "Yes, normalize", no: "No"
+    }
+  };
+
+  var lang = "es";
+  try { var saved = localStorage.getItem("fw-lang"); if (saved === "es" || saved === "en") lang = saved; else if (!/^es/i.test(navigator.language || "es")) lang = "en"; } catch (e) {}
+  function L(k) { return T[lang][k]; }
+
+  /* ------------------------------------------------------------------ */
+  /* Utilidades numéricas con la misma semántica que pandas / numpy      */
+  /* ------------------------------------------------------------------ */
+  var NUM_RE = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+  // str(v) de Python para lo que puede traer una celda
+  function pyStr(v) {
+    if (v === null || v === undefined) return "nan";
+    if (typeof v === "number") {
+      if (isNaN(v)) return "nan";
+      if (v === Infinity) return "inf";
+      if (v === -Infinity) return "-inf";
+      return String(v);
+    }
+    if (typeof v === "boolean") return v ? "True" : "False";
+    return String(v);
+  }
+
+  // pd.to_numeric(str(v).replace(",", "."), errors="coerce")
+  function toNum(v) {
+    if (v === null || v === undefined) return NaN;
+    if (typeof v === "number") return v;
+    if (typeof v === "boolean") return NaN;
+    var s = String(v).replace(/,/g, ".").trim();
+    if (NUM_RE.test(s)) return parseFloat(s);
+    var l = s.toLowerCase();
+    if (l === "inf" || l === "+inf" || l === "infinity" || l === "+infinity") return Infinity;
+    if (l === "-inf" || l === "-infinity") return -Infinity;
+    return NaN;
+  }
+
+  // _is_numeric_like: una celda vacía cuenta como NO numérica
+  function isNumericLike(v) {
+    if (v === null || v === undefined) return false;
+    if (typeof v === "number") return !isNaN(v);
+    var s = pyStr(v).trim().replace(/,/g, ".");
+    return NUM_RE.test(s) || /^[+-]?(inf|infinity|nan)$/i.test(s);
+  }
+
+  function fracNonNumeric(vals) {
+    if (!vals.length) return 0;
+    var nn = 0;
+    for (var i = 0; i < vals.length; i++) if (!isNumericLike(vals[i])) nn++;
+    return nn / vals.length;
+  }
+
+  // _is_multiple_of_half
+  function isMultHalf(arr) {
+    var any = false;
+    for (var i = 0; i < arr.length; i++) {
+      var x = arr[i];
+      if (!isFinite(x)) continue;
+      any = true;
+      var d = x * 2 - Math.round(x * 2);
+      if (Math.abs(d) > 1e-9) return false;
+    }
+    return any;
+  }
+
+  // _make_unique
+  function makeUnique(names) {
+    var seen = {}, out = [];
+    names.forEach(function (n) {
+      var n0 = String(n).trim();
+      if (Object.prototype.hasOwnProperty.call(seen, n0)) { seen[n0] += 1; out.push(n0 + " (" + seen[n0] + ")"); }
+      else { seen[n0] = 1; out.push(n0); }
+    });
+    return out;
+  }
+
+  // Suma compensada (Kahan), como el groupby().sum() de pandas
+  function Kahan() { this.s = 0; this.c = 0; this.n = 0; }
+  Kahan.prototype.add = function (v) {
+    if (isNaN(v)) return;
+    this.n++;
+    var y = v - this.c, t = this.s + y;
+    this.c = t - this.s - y;
+    if (this.c !== this.c) this.c = 0;
+    this.s = t;
+  };
+
+  function cmp(a, b) { return a < b ? -1 : (a > b ? 1 : 0); }
+  function round6(x) { return Math.round(x * 1e6) / 1e6; }
+
+  /* ------------------------------------------------------------------ */
+  /* Planilla: mismo resultado que pd.read_excel(archivo, header=0)      */
+  /* ------------------------------------------------------------------ */
+  function isBlank(v) { return v === null || v === undefined || v === ""; }
+
+  function sheetFromAoA(aoa) {
+    var rows = aoa.map(function (r) {
+      var row = (r || []).slice();
+      while (row.length && isBlank(row[row.length - 1])) row.pop();
+      return row;
+    });
+    while (rows.length && !rows[rows.length - 1].length) rows.pop();
+    if (!rows.length) return null;
+    var width = 0;
+    rows.forEach(function (r) { if (r.length > width) width = r.length; });
+    rows = rows.map(function (r) {
+      var out = [];
+      for (var j = 0; j < width; j++) out.push(isBlank(r[j]) ? null : r[j]);
+      return out;
+    });
+    var head = rows[0];
+    var names = head.map(function (v, j) { return v === null ? "Unnamed: " + j : v; });
+    // encabezados repetidos: "X", "X.1", "X.2" (como pandas)
+    var counts = {};
+    function key(v) { return (typeof v) + ":" + String(v); }
+    for (var i = 0; i < names.length; i++) {
+      var col = names[i], cur = counts[key(col)] || 0;
+      while (cur > 0) {
+        counts[key(col)] = cur + 1;
+        col = pyStr(col) + "." + cur;
+        cur = counts[key(col)] || 0;
+      }
+      names[i] = col;
+      counts[key(col)] = cur + 1;
+    }
+    return { cols: names, rows: rows.slice(1) };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Tamizado: _normalize_tamiz_formats y _maybe_normalize_tamiz_to_100   */
+  /* ------------------------------------------------------------------ */
+  var NO_GROUP = "No Group";
+
+  function sortSampleThen(rows, field) {
+    return rows.map(function (r, i) { return [r, i]; }).sort(function (a, b) {
+      return cmp(a[0].sample, b[0].sample) || cmp(a[0][field], b[0][field]) || (a[1] - b[1]);
+    }).map(function (x) { return x[0]; });
+  }
+
+  function groupsRowInfo(sh, sampleCols) {
+    if (sh.rows.length >= 2) {
+      var g = sh.rows[0];
+      var present = fracNonNumeric(sampleCols.map(function (j) { return g[j]; })) > 0.60;
+      return { present: present, start: present ? 1 : 0, row: g };
+    }
+    return { present: false, start: 0, row: null };
+  }
+
+  function groupLabel(v) {
+    var s = pyStr(v).trim();
+    return (s === "" || s.toLowerCase() === "nan") ? NO_GROUP : s;
+  }
+
+  function sampleColumns(sh) {
+    var cols = [], raw = [];
+    for (var j = 1; j < sh.cols.length; j++) {
+      var s = pyStr(sh.cols[j]).trim();
+      if (s === "" || s.toLowerCase() === "nan") continue;
+      cols.push(j); raw.push(s);
+    }
+    return { cols: cols, names: makeUnique(raw) };
+  }
+
+  function normalizeTamiz(sh) {
+    var ncols = sh.cols.length;
+    if (ncols < 1) return null;
+
+    // Formato 1: exactamente 4 columnas
+    if (ncols === 4) {
+      var phi = sh.rows.map(function (r) { return toNum(r[0]); });
+      var wt = sh.rows.map(function (r) { return toNum(r[2]); });
+      var anyW = wt.some(function (x) { return !isNaN(x); });
+      if (isMultHalf(phi) && anyW) {
+        var cnt = {}, rep = false;
+        sh.rows.forEach(function (r) { var k = r[1] === null ? "\u0000nan" : (typeof r[1]) + ":" + r[1]; cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] >= 2) rep = true; });
+        if (rep) {
+          var rows = [];
+          sh.rows.forEach(function (r, i) {
+            if (!isNaN(phi[i]) && !isNaN(wt[i])) rows.push({ phi: phi[i], sample: r[1] === null ? null : pyStr(r[1]), w: wt[i], g: r[3] });
+          });
+          rows = rows.filter(function (r) { return r.sample !== null; });
+          rows = sortSampleThen(rows, "phi");
+          var bySample = {};
+          rows.forEach(function (r) { (bySample[r.sample] = bySample[r.sample] || []).push(r); });
+          for (var s in bySample) {
+            var uniq = [];
+            bySample[s].forEach(function (r) {
+              if (r.g === null) return;
+              var v = pyStr(r.g).trim();
+              if (v === "" || v === "nan") return;
+              if (uniq.indexOf(v) < 0) uniq.push(v);
+            });
+            if (uniq.length > 1) return null;
+            var fill = uniq.length === 1 ? uniq[0] : NO_GROUP;
+            bySample[s].forEach(function (r) { r.g = fill; });
+          }
+          return { format: 1, rows: rows };
+        }
+      }
+    }
+
+    // Formato 2: ancho
+    if (sh.rows.length >= 1 && ncols >= 2) {
+      var sc = sampleColumns(sh);
+      if (!sc.cols.length) return null;
+      var gi = groupsRowInfo(sh, sc.cols);
+      var data = sh.rows.slice(gi.start);
+      var phis = data.map(function (r) { return toNum(r[0]); });
+      if (!isMultHalf(phis)) return null;
+      var groups = sc.cols.map(function (j) { return gi.present ? groupLabel(gi.row[j]) : NO_GROUP; });
+      var out = [];
+      sc.cols.forEach(function (j, k) {
+        data.forEach(function (r, i) {
+          if (isNaN(phis[i])) return;
+          var w = toNum(r[j]);
+          if (isNaN(w)) return;
+          out.push({ phi: phis[i], sample: sc.names[k], w: w, g: groups[k] });
+        });
+      });
+      return { format: 2, rows: sortSampleThen(out, "phi") };
+    }
+    return null;
+  }
+
+  function sieveSums(rows) {
+    var acc = {};
+    rows.forEach(function (r) { (acc[r.sample] = acc[r.sample] || new Kahan()).add(r.w); });
+    var out = {};
+    Object.keys(acc).forEach(function (k) { out[k] = acc[k].n ? acc[k].s : NaN; });
+    return out;
+  }
+
+  function notCloseTo100(v) { return !(Math.abs(v - 100) <= 0.6 + 1e-5 * 100); }
+
+  function normalizeTo100(rows, sums) {
+    rows.forEach(function (r) {
+      var tot = sums[r.sample];
+      if (!isFinite(tot) || tot <= 0 || !notCloseTo100(tot)) return;
+      r.w = r.w * (100 / tot);
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Láser: _normalize_laser_inputs y _bin_laser_phi_right_closed         */
+  /* ------------------------------------------------------------------ */
+  function normHeader(s) {
+    s = pyStr(s).normalize("NFKD").replace(/[̀-ͯ᪰-᫿᷀-᷿⃐-⃿︠-︯]/g, "");
+    s = s.toLowerCase().replace(/[µμ]/g, "u");
+    return s.replace(/[^a-z0-9%]+/g, "");
+  }
+
+  function mapLaserByName(sh) {
+    var n = sh.cols.map(normHeader);
+    function find(pred) { for (var i = 0; i < n.length; i++) if (pred(n[i])) return i; return -1; }
+    function has(x, keys) { return keys.some(function (k) { return x.indexOf(k) >= 0; }); }
+    var cs = find(function (x) { return has(x, ["sample", "muestra", "nombre", "name", "id"]); });
+    var cd = find(function (x) { return x.indexOf("diamet") >= 0 || x.indexOf("size") >= 0 || (x.charAt(0) === "d" && x.indexOf("um") >= 0); });
+    var cp = find(function (x) { return x === "1" || x === "1%" || x === "1percent" || has(x, ["porcent", "percent", "wt"]) || x.slice(-1) === "%"; });
+    var cg = find(function (x) { return has(x, ["group", "grupo", "facies", "filtro"]); });
+    if (cs < 0 || cd < 0 || cp < 0 || cg < 0) return null;
+    return sh.rows.map(function (r) { return { sample: r[cs], d: r[cd], pct: r[cp], g: r[cg] }; });
+  }
+
+  function normalizeLaser(sh) {
+    var a = mapLaserByName(sh);
+    if (a) return { format: 1, rows: a };
+    if (sh.cols.length < 2) return null;
+    var diam = sh.rows.map(function (r) { return toNum(r[0]); });
+    if (!diam.length) return null;
+    var fin = diam.filter(function (x) { return isFinite(x); }).length / diam.length;
+    if (!(fin > 0.60 && !isMultHalf(diam))) return null;
+    var sc = sampleColumns(sh);
+    if (!sc.cols.length) return null;
+    var gi = groupsRowInfo(sh, sc.cols);
+    var data = [];
+    sh.rows.slice(gi.start).forEach(function (r) {
+      var d = toNum(r[0]);
+      if (isNaN(d) || !(d > 0)) return;
+      data.push({ d: d, r: r });
+    });
+    var groups = sc.cols.map(function (j) { return gi.present ? groupLabel(gi.row[j]) : NO_GROUP; });
+    var out = [];
+    sc.cols.forEach(function (j, k) {
+      data.forEach(function (it) {
+        var p = toNum(it.r[j]);
+        if (isNaN(p)) return;
+        out.push({ sample: sc.names[k], d: it.d, pct: p, g: groups[k] });
+      });
+    });
+    return { format: 2, rows: sortSampleThen(out, "d") };
+  }
+
+  function laserGroupMissing(rows) {
+    return rows.some(function (r) { return r.g === null || r.g === undefined || (typeof r.g === "number" && isNaN(r.g)) || pyStr(r.g).trim() === ""; });
+  }
+
+  // Intervalos (X - paso, X] con X = borde derecho; bordes comunes a todas las muestras
+  function binLaser(rows, step) {
+    var items = [];
+    rows.forEach(function (r) {
+      var d = toNum(r.d), w = toNum(r.pct);
+      if (isFinite(d) && isFinite(w) && d > 0) items.push({ s: pyStr(r.sample), phi: -Math.log2(d / 1000), w: w });
+    });
+    if (!items.length) return null;
+    var mn = Infinity, mx = -Infinity;
+    items.forEach(function (it) { if (it.phi < mn) mn = it.phi; if (it.phi > mx) mx = it.phi; });
+    var lo = Math.floor(mn / step) * step, hi = Math.ceil(mx / step) * step;
+    var n = Math.ceil((hi + step + 1e-9 - lo) / step), edges = [];
+    for (var k = 0; k < n; k++) edges.push(round6(lo + k * step));
+    var acc = {};
+    items.forEach(function (it) {
+      var b;
+      if (it.phi === edges[0]) b = 1;
+      else { b = 0; while (b < edges.length && edges[b] < it.phi) b++; }
+      if (b < 1 || b >= edges.length) return;
+      var key = it.s + "\u0001" + b;
+      (acc[key] = acc[key] || { s: it.s, b: b, k: new Kahan() }).k.add(it.w);
+    });
+    var out = Object.keys(acc).map(function (key) { var a = acc[key]; return { sample: a.s, phi: round6(edges[a.b]), w: a.k.s }; });
+    out.sort(function (a, b) { return cmp(a.sample, b.sample) || (a.phi - b.phi); });
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Grilla editable (se escribe o se pega desde Excel)                  */
+  /* ------------------------------------------------------------------ */
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+  function colName(j) { var s = ""; j++; while (j > 0) { var m = (j - 1) % 26; s = String.fromCharCode(65 + m) + s; j = Math.floor((j - 1) / 26); } return s; }
+
+  function Grid(host, rows, cols, phKey, onEdit) {
+    this.host = host; this.minR = rows; this.minC = cols; this.phKey = phKey; this.onEdit = onEdit;
+    this.clear(true);
+    var self = this;
+    host.addEventListener("input", function (e) {
+      var t = e.target; if (!t.dataset || t.dataset.r === undefined) return;
+      var r = +t.dataset.r, c = +t.dataset.c;
+      self.data[r][c] = t.value;
+      var grow = false;
+      if (r >= self.data.length - 1 && t.value !== "") { self.addRows(1); grow = true; }
+      if (c >= self.data[0].length - 1 && t.value !== "") { self.addCols(1); grow = true; }
+      if (grow) self.render(r, c, true);
+      self.onEdit();
+    });
+    host.addEventListener("paste", function (e) {
+      var t = e.target; if (!t.dataset || t.dataset.r === undefined) return;
+      var txt = (e.clipboardData || window.clipboardData).getData("text");
+      if (!/[\t\n\r]/.test(txt)) return;
+      e.preventDefault();
+      var lines = txt.replace(/\r\n?/g, "\n").split("\n");
+      while (lines.length && lines[lines.length - 1] === "") lines.pop();
+      var cells = lines.map(function (l) { return l.split("\t"); });
+      var r0 = +t.dataset.r, c0 = +t.dataset.c, w = 0;
+      cells.forEach(function (l) { if (l.length > w) w = l.length; });
+      self.ensure(r0 + cells.length + 1, c0 + w + 1);
+      cells.forEach(function (l, i) { l.forEach(function (v, j) { self.data[r0 + i][c0 + j] = v.trim() === "" ? "" : v; }); });
+      self.render(r0, c0);
+      self.onEdit();
+    });
+    host.addEventListener("keydown", function (e) {
+      var t = e.target; if (!t.dataset || t.dataset.r === undefined) return;
+      var r = +t.dataset.r, c = +t.dataset.c, nr = r;
+      if (e.key === "Enter") nr = e.shiftKey ? r - 1 : r + 1;
+      else if (e.key === "ArrowDown") nr = r + 1;
+      else if (e.key === "ArrowUp") nr = r - 1;
+      else return;
+      e.preventDefault();
+      if (nr < 0) return;
+      if (nr >= self.data.length) { self.addRows(1); self.render(nr, c); return; }
+      self.focus(nr, c);
+    });
+  }
+  Grid.prototype.clear = function (silent) {
+    this.data = [];
+    for (var i = 0; i < this.minR; i++) { var row = []; for (var j = 0; j < this.minC; j++) row.push(""); this.data.push(row); }
+    this.render();
+    if (!silent) this.onEdit();
+  };
+  Grid.prototype.addRows = function (n) { var w = this.data[0].length; for (var i = 0; i < n; i++) { var row = []; for (var j = 0; j < w; j++) row.push(""); this.data.push(row); } };
+  Grid.prototype.addCols = function (n) { this.data.forEach(function (row) { for (var j = 0; j < n; j++) row.push(""); }); };
+  Grid.prototype.ensure = function (rows, cols) {
+    if (this.data.length < rows) this.addRows(rows - this.data.length);
+    if (this.data[0].length < cols) this.addCols(cols - this.data[0].length);
+  };
+  Grid.prototype.setAoA = function (aoa) {
+    var w = 0;
+    aoa.forEach(function (r) { if (r && r.length > w) w = r.length; });
+    this.data = [];
+    for (var i = 0; i < aoa.length; i++) {
+      var row = [];
+      for (var j = 0; j < w; j++) { var v = aoa[i] ? aoa[i][j] : null; row.push(v === null || v === undefined ? "" : (typeof v === "number" ? String(v) : String(v))); }
+      this.data.push(row);
+    }
+    if (!this.data.length) this.data.push([""]);
+    this.ensure(Math.max(this.minR, this.data.length + 1), Math.max(this.minC, this.data[0].length + 1));
+    this.render();
+  };
+  Grid.prototype.getAoA = function () {
+    return this.data.map(function (row) { return row.map(function (v) { return v === "" ? null : v; }); });
+  };
+  Grid.prototype.render = function (fr, fc, keepCaret) {
+    var ph = L(this.phKey), nC = this.data[0].length, h = ['<table><thead><tr><th class="corner"></th>'];
+    for (var j = 0; j < nC; j++) h.push("<th>" + colName(j) + "</th>");
+    h.push("</tr></thead><tbody>");
+    for (var i = 0; i < this.data.length; i++) {
+      h.push("<tr" + (i === 0 ? ' class="hdr"' : "") + "><th>" + (i + 1) + "</th>");
+      for (j = 0; j < nC; j++) {
+        var p = (i === 0 && ph[j]) ? ' placeholder="' + esc(ph[j]) + '"' : "";
+        h.push('<td><input data-r="' + i + '" data-c="' + j + '" value="' + esc(this.data[i][j]) + '"' + p + ' spellcheck="false" autocomplete="off" aria-label="' + colName(j) + (i + 1) + '"></td>');
+      }
+      h.push("</tr>");
+    }
+    h.push("</tbody></table>");
+    this.host.innerHTML = h.join("");
+    if (fr !== undefined) this.focus(fr, fc, keepCaret);
+  };
+  Grid.prototype.focus = function (r, c, keepCaret) {
+    var el = this.host.querySelector('input[data-r="' + r + '"][data-c="' + c + '"]');
+    if (!el) return;
+    el.focus();
+    if (keepCaret) { var n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} } else { try { el.select(); } catch (e) {} }
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Lectura de Excel (SheetJS, se carga solo al subir un archivo)        */
+  /* ------------------------------------------------------------------ */
+  var xlsxReady = null;
+  function loadXLSX() {
+    if (window.XLSX) return Promise.resolve();
+    if (xlsxReady) return xlsxReady;
+    xlsxReady = new Promise(function (res, rej) {
+      var s = document.createElement("script");
+      s.src = "xlsx.full.min.js";
+      s.onload = function () { res(); };
+      s.onerror = function () { xlsxReady = null; rej(new Error("xlsx")); };
+      document.head.appendChild(s);
+    });
+    return xlsxReady;
+  }
+  function readWorkbook(file) {
+    return loadXLSX().then(function () {
+      return file.arrayBuffer();
+    }).then(function (buf) {
+      var wb = XLSX.read(buf, { type: "array" });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws || !ws["!ref"]) return [];
+      var rg = XLSX.utils.decode_range(ws["!ref"]);
+      rg.s.r = 0; rg.s.c = 0;
+      return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: true, range: rg });
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Ejemplo                                                             */
+  /* ------------------------------------------------------------------ */
+  var EX = {
+    phi: [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4],
+    sieve: {
+      "M-01": [0.12, 0.27, 0.7, 1.6, 3.13, 5.29, 7.73, 9.77, 10.68, 10.12, 8.45, 6.53, 5.34, 5.3, 24.97],
+      "M-02": [0.06, 0.12, 0.3, 0.7, 1.45, 2.69, 4.46, 6.63, 8.83, 10.55, 11.31, 10.95, 9.66, 7.95, 24.34]
+    },
+    d: [2000, 1681.79, 1414.21, 1189.21, 1000, 840.9, 707.11, 594.6, 500, 420.45, 353.55, 297.3, 250, 210.22, 176.78, 148.65, 125, 105.11, 88.39, 74.33, 62.5, 52.56, 44.19, 37.16, 31.25, 26.28, 22.1, 18.58, 15.62, 13.14, 11.05, 9.29, 7.81, 6.57, 5.52, 4.65, 3.91, 3.28, 2.76, 2.32, 1.95],
+    laser: {
+      "M-01": [1.873, 2.442, 3.069, 3.718, 4.341, 4.885, 5.298, 5.54, 5.586, 5.436, 5.112, 4.659, 4.14, 3.624, 3.18, 2.862, 2.701, 2.699, 2.822, 3.009, 3.186, 3.277, 3.229, 3.025, 2.679, 2.239, 1.762, 1.304, 0.907, 0.595, 0.366, 0.212, 0.115, 0.059, 0.028, 0.013, 0.005, 0.002, 0.001, 0, 0],
+      "M-02": [0.862, 1.176, 1.561, 2.014, 2.528, 3.086, 3.665, 4.234, 4.758, 5.203, 5.536, 5.734, 5.785, 5.688, 5.459, 5.123, 4.715, 4.27, 3.825, 3.406, 3.031, 2.706, 2.428, 2.187, 1.967, 1.756, 1.545, 1.331, 1.117, 0.909, 0.714, 0.541, 0.394, 0.276, 0.186, 0.12, 0.074, 0.044, 0.025, 0.014, 0.007]
+    },
+    groups: ["Caída", "Corriente"]
+  };
+  function exampleAoA(kind) {
+    var names = ["M-01", "M-02"];
+    var head = [kind === "sieve" ? "Phi" : (lang === "es" ? "Diámetro (μm)" : "Diameter (μm)")].concat(names);
+    var grp = [lang === "es" ? "Grupo" : "Group"].concat(EX.groups);
+    var xs = kind === "sieve" ? EX.phi : EX.d, src = kind === "sieve" ? EX.sieve : EX.laser;
+    var aoa = [head, grp];
+    xs.forEach(function (x, i) { aoa.push([x, src["M-01"][i], src["M-02"][i]]); });
+    return aoa;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Estado y pantalla                                                   */
+  /* ------------------------------------------------------------------ */
+  var state = { sieve: null, laser: null, step: 1, sieveMsg: null, laserMsg: null };
+  window.FW_STATE = state;
+
+  function $(s) { return document.querySelector(s); }
+  var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="m8 12.3 2.7 2.7L16.2 9.5"/></svg>';
+  var ICON_ERR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M12 7.5v5.5"/><path d="M12 16.6v.01"/></svg>';
+  function escT(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function fmtStep(s) { return lang === "es" ? String(s === 1 ? "1,0" : "0,5") : String(s === 1 ? "1.0" : "0.5"); }
+
+  function chipsHTML(ds) {
+    return '<div class="chips">' + ds.samples.map(function (s) {
+      var g = ds.groups[s];
+      return '<span class="chip" title="' + esc(s) + '">' + escT(s) + (g && g !== NO_GROUP ? " <em>" + escT(g) + "</em>" : "") + "</span>";
+    }).join("") + "</div>";
+  }
+
+  function renderStatus(kind) {
+    var box = $("#st-" + kind), m = state[kind + "Msg"];
+    if (!m) { box.innerHTML = ""; return; }
+    if (m.err) { box.innerHTML = '<div class="msg err">' + ICON_ERR + "<span>" + escT(L(m.err)) + "</span></div>"; return; }
+    if (m.busy) { box.innerHTML = '<div class="msg"><span class="sub">' + escT(L("reading")) + "</span></div>"; return; }
+    var ds = state[kind], parts = [ds.format === 1 ? L("fmtRows") : L("fmtWide")];
+    if (kind === "sieve" && ds.normalized) parts.push(L("normalized"));
+    if (kind === "laser") parts.push(L("bins")(ds.nbins, fmtStep(state.step)));
+    box.innerHTML = '<div class="msg">' + ICON_OK + "<span><b>" + escT(L("samples")(ds.samples.length)) + '</b> <span class="sub">· ' + escT(parts.join(" · ")) + "</span></span></div>" + chipsHTML(ds);
+  }
+
+  function setDirty(kind, on) {
+    var b = $("#load-" + kind);
+    if (on && state[kind]) b.setAttribute("data-dirty", ""); else b.removeAttribute("data-dirty");
+  }
+
+  function fail(kind, key) {
+    state[kind] = null; state[kind + "Msg"] = { err: key };
+    renderStatus(kind); setDirty(kind, false);
+  }
+
+  function summarize(rows) {
+    var samples = [], groups = {};
+    rows.forEach(function (r) { if (!(r.sample in groups)) { groups[r.sample] = r.g; samples.push(r.sample); } });
+    samples.sort(cmp);
+    return { samples: samples, groups: groups };
+  }
+
+  // Pregunta con dos botones (equivale al QMessageBox del FW). Sí es la opción por defecto.
+  function ask(title, text) {
+    var d = $("#dlg");
+    $("#dlg-t").textContent = title; $("#dlg-p").textContent = text;
+    $("#dlg-yes").textContent = L("yes"); $("#dlg-no").textContent = L("no");
+    return new Promise(function (res) {
+      function done(v) { d.removeEventListener("cancel", onCancel); $("#dlg-yes").onclick = $("#dlg-no").onclick = null; if (d.open) d.close(); res(v); }
+      function onCancel(e) { e.preventDefault(); done(false); }
+      d.addEventListener("cancel", onCancel);
+      $("#dlg-yes").onclick = function () { done(true); };
+      $("#dlg-no").onclick = function () { done(false); };
+      if (typeof d.showModal === "function") { d.showModal(); $("#dlg-yes").focus(); }
+      else res(window.confirm(title + "\n\n" + text));
+    });
+  }
+
+  function loadSieve() {
+    var sh = sheetFromAoA(gridS.getAoA());
+    if (!sh || (!sh.rows.length && sh.cols.length < 2)) return fail("sieve", "errEmpty");
+    var res = normalizeTamiz(sh);
+    if (!res || !res.rows.length) return fail("sieve", "errSieveFmt");
+    var sums = sieveSums(res.rows);
+    var bad = Object.keys(sums).sort(cmp).filter(function (k) { return notCloseTo100(sums[k]); });
+    var q = bad.length ? ask(L("normTitle"), L("normText")(bad.length, bad.slice(0, 12).join(", ") + (bad.length > 12 ? "…" : ""))) : Promise.resolve(false);
+    return q.then(function (yes) {
+      if (yes) normalizeTo100(res.rows, sums);
+      var s = summarize(res.rows);
+      state.sieve = { format: res.format, rows: res.rows, samples: s.samples, groups: s.groups, normalized: !!yes };
+      state.sieveMsg = { ok: true };
+      renderStatus("sieve"); setDirty("sieve", false);
+      document.dispatchEvent(new Event("fw:data"));
+    });
+  }
+
+  function binCurrentLaser() {
+    var L0 = state.laser;
+    var b = binLaser(L0.canon, state.step);
+    if (!b) return false;
+    var groups = {};
+    L0.canon.forEach(function (r) { var s = pyStr(r.sample); if (!(s in groups)) groups[s] = pyStr(r.g); });
+    b.forEach(function (r) { r.g = (r.sample in groups) ? groups[r.sample] : NO_GROUP; });
+    var s = summarize(b);
+    var phis = {};
+    b.forEach(function (r) { phis[r.phi] = true; });
+    L0.binned = b; L0.samples = s.samples; L0.groups = s.groups;
+    L0.nbins = Object.keys(phis).length;
+    return true;
+  }
+
+  function loadLaser() {
+    var sh = sheetFromAoA(gridL.getAoA());
+    if (!sh || (!sh.rows.length && sh.cols.length < 2)) return fail("laser", "errEmpty");
+    if (sh.cols.length < 2) return fail("laser", "errLaserCols");
+    var res = normalizeLaser(sh);
+    if (!res || !res.rows.length) return fail("laser", "errLaserFmt");
+    if (laserGroupMissing(res.rows)) return fail("laser", "errLaserGroup");
+    state.laser = { format: res.format, canon: res.rows };
+    if (!binCurrentLaser()) return fail("laser", "errLaserBin");
+    state.laserMsg = { ok: true };
+    renderStatus("laser"); setDirty("laser", false);
+    document.dispatchEvent(new Event("fw:data"));
+  }
+
+  var gridS = new Grid($("#grid-sieve"), 10, 4, "phSieve", function () { setDirty("sieve", true); });
+  var gridL = new Grid($("#grid-laser"), 10, 3, "phLaser", function () { setDirty("laser", true); });
+  var grids = { sieve: gridS, laser: gridL };
+  var loaders = { sieve: loadSieve, laser: loadLaser };
+
+  $("#load-sieve").addEventListener("click", loadSieve);
+  $("#load-laser").addEventListener("click", loadLaser);
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-example]"), function (b) {
+    b.addEventListener("click", function () { var k = b.getAttribute("data-example"); grids[k].setAoA(exampleAoA(k)); loaders[k](); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-clear]"), function (b) {
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-clear");
+      grids[k].clear(true); state[k] = null; state[k + "Msg"] = null; renderStatus(k); setDirty(k, false);
+      document.dispatchEvent(new Event("fw:data"));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("input[data-file]"), function (inp) {
+    inp.addEventListener("change", function () {
+      var k = inp.getAttribute("data-file"), f = inp.files && inp.files[0];
+      inp.value = "";
+      if (!f) return;
+      state[k + "Msg"] = { busy: true }; renderStatus(k);
+      readWorkbook(f).then(function (aoa) {
+        grids[k].setAoA(aoa);
+        loaders[k]();
+      }).catch(function () { fail(k, "errFile"); });
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function (b) {
+    b.addEventListener("click", function () {
+      var s = +b.getAttribute("data-step");
+      if (s === state.step) return;
+      state.step = s;
+      Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function (x) { x.setAttribute("aria-pressed", +x.getAttribute("data-step") === s ? "true" : "false"); });
+      if (state.laser && binCurrentLaser()) { renderStatus("laser"); document.dispatchEvent(new Event("fw:data")); }
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  /* Idioma                                                              */
+  /* ------------------------------------------------------------------ */
+  function applyLang(l, save) {
+    lang = l;
+    document.documentElement.lang = l;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-i18n]"), function (el) {
+      var k = el.getAttribute("data-i18n");
+      if (k === "title") document.title = T[l].title; else el.innerHTML = T[l][k];
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lang") === l ? "true" : "false"); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function (b) { b.textContent = fmtStep(+b.getAttribute("data-step")); });
+    gridS.render(); gridL.render();
+    renderStatus("sieve"); renderStatus("laser");
+    if (save) { try { localStorage.setItem("fw-lang", l); } catch (e) {} }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) {
+    b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang"), true); });
+  });
+  applyLang(lang, false);
+
+  // Funciones expuestas para las verificaciones contra el FW original
+  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser };
+})();
+</script>
+</body>
+</html>
