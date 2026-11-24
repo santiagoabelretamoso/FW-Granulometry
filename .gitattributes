@@ -1,0 +1,4 @@
+# Archivos para Windows: se guardan tal cual (CRLF)
+*.bat -text
+LEEME.txt -text
+*.zip binary
