@@ -1,0 +1,61 @@
+﻿FW-Granulometry 2.0
+Folk & Ward Granulometry
+
+Software libre y de código abierto para el análisis granulométrico de
+tefras y otros depósitos volcaniclásticos: parámetros granulométricos,
+gráficos de granulometría volcánica, unificación de datos de láser y
+tamizado, análisis de componentes y análisis fractal.
+
+Página del programa: https://santiagoabelretamoso.github.io/FW-Granulometry/
+
+
+INSTALACIÓN EN WINDOWS
+----------------------
+1. Instalar Python 3.9 o superior desde https://www.python.org/downloads/
+   Durante la instalación, marcar la opción "Add python.exe to PATH".
+
+2. Descomprimir este ZIP (clic derecho, "Extraer todo").
+
+3. Hacer doble clic en "Instalar FW-Granulometry.bat".
+   Instala los paquetes de Python que usa el programa y crea un acceso
+   directo "FW-Granulometry 2.0" en el Escritorio. Necesita conexión a
+   internet. Solo hace falta la primera vez.
+
+4. Abrir el programa con el acceso directo del Escritorio, o con doble
+   clic en "Abrir FW-Granulometry.bat".
+
+
+INSTALACIÓN EN macOS Y LINUX
+----------------------------
+1. Instalar Python 3.9 o superior.
+2. Abrir una terminal en esta carpeta y ejecutar:
+      python3 -m pip install -r requirements.txt
+3. Abrir el programa con:
+      python3 "FW-Granulometry 2.0.py"
+
+
+IMPORTANTE
+----------
+- Todos los archivos tienen que quedar juntos en esta carpeta. No hay que
+  cambiarles el nombre ni separarlos.
+- Las planillas de Excel con datos pueden estar en cualquier carpeta.
+- GdeInput (complemento para PYFLOW) requiere Windows con WSL y PYFLOW
+  instalado. El resto del programa funciona sin él.
+
+
+CONTENIDO
+---------
+FW-Granulometry 2.0.py          Programa principal
+Componentry-FW.py               Análisis de componentes y complementos
+FractalAnalysis.py              Análisis fractal
+Graphic.py, GraphicVectors.py   Diagramas de clasificación
+GdeInput.py                     Complemento para PYFLOW (opcional)
+icono.nuevo.png, .ico           Ícono del programa
+requirements.txt                Paquetes de Python necesarios
+Instalar FW-Granulometry.bat    Instalación en Windows
+Abrir FW-Granulometry.bat       Abre el programa en Windows
+LICENSE                         Licencia GNU GPL v3.0
+
+
+Contacto: santiagoabelretamoso@gmail.com
+Licencia: GNU General Public License v3.0 (ver LICENSE).
