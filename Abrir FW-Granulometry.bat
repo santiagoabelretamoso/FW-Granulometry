@@ -6,8 +6,8 @@ if not exist "FW-Granulometry 2.0.py" goto :sin_carpeta
 
 set "PY="
 set "PYW="
-py -3 -c "import PyQt5, numpy, pandas, matplotlib, scipy" >nul 2>&1 && set "PY=py -3" && set "PYW=pyw -3"
-if not defined PY python -c "import PyQt5, numpy, pandas, matplotlib, scipy" >nul 2>&1 && set "PY=python" && set "PYW=pythonw"
+py -3 -c "import PyQt5, numpy, pandas, matplotlib, scipy, openpyxl, xlsxwriter, xlrd" >nul 2>&1 && set "PY=py -3" && set "PYW=pyw -3"
+if not defined PY python -c "import PyQt5, numpy, pandas, matplotlib, scipy, openpyxl, xlsxwriter, xlrd" >nul 2>&1 && set "PY=python" && set "PYW=pythonw"
 if not defined PY goto :sin_requisitos
 
 start "" %PYW% "FW-Granulometry 2.0.py"
