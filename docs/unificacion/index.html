@@ -147,6 +147,22 @@ footer .nw{white-space:nowrap}
   footer{padding:6px 16px 14px;font-size:.78rem}
 }
 @media (prefers-reduced-motion:reduce){.btn{transition:none}.btn.primary:hover{transform:none}}
+@font-face{font-family:"DejaVu Sans FW";font-weight:400;font-display:block;src:url("../assets/fonts/dejavu-sans.woff2") format("woff2")}
+@font-face{font-family:"DejaVu Sans FW";font-weight:700;font-display:block;src:url("../assets/fonts/dejavu-sans-bold.woff2") format("woff2")}
+.fields{margin-top:14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.field select{font:inherit;font-size:.9rem;height:38px;padding:0 10px;border:1px solid #cbdbea;border-radius:10px;background:#fff;color:var(--ink);min-width:0}
+.field select:disabled{color:var(--faint);background:#f6f9fc}
+.field.inline{flex-direction:row;align-items:center;gap:8px}
+.field.inline select{height:34px}
+.mdesc{margin:12px 0 0;font-size:.86rem;color:var(--muted)}
+.hbar{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.seg button:disabled{opacity:.4;cursor:default}
+.figure{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+.figure svg{display:block;width:100%;height:auto}
+.figure .empty{margin:0;padding:60px 16px;text-align:center;color:var(--faint);font-size:.9rem}
 </style>
 </head>
 <body>
@@ -209,20 +225,31 @@ footer .nw{white-space:nowrap}
     </section>
   </div>
 
-  <section class="card soon" id="card-merge" aria-labelledby="t-merge">
+  <section class="card" id="card-merge" aria-labelledby="t-merge">
     <div class="card-head">
       <span class="num" aria-hidden="true">3</span>
-      <div class="ttl"><h2 id="t-merge" data-i18n="merge">Unificar</h2><p class="hint" data-i18n="mergeHint">Muestra de tamizado, muestra de láser, método y φ*</p></div>
+      <div class="ttl"><h2 id="t-merge" data-i18n="merge">Unificar</h2><p class="hint" data-i18n="mergeHint">Muestras, método y φ*</p></div>
     </div>
-    <p class="soon-note" data-i18n="soon">Se completa en la próxima etapa.</p>
+    <div class="fields">
+      <label class="field"><span data-i18n="fSieve">Muestra de tamizado</span><select id="sel-sieve"></select></label>
+      <label class="field"><span data-i18n="fLaser">Muestra de láser</span><select id="sel-laser"></select></label>
+      <label class="field"><span data-i18n="fMethod">Método</span><select id="sel-method"><option value="m1"></option><option value="m2"></option><option value="m3"></option></select></label>
+      <label class="field"><span>φ*</span><select id="sel-cut"></select></label>
+    </div>
+    <p class="mdesc" id="mdesc"></p>
   </section>
 
-  <section class="card soon" id="card-hist" aria-labelledby="t-hist">
+  <section class="card" id="card-hist" aria-labelledby="t-hist">
     <div class="card-head">
       <span class="num" aria-hidden="true">4</span>
-      <div class="ttl"><h2 id="t-hist" data-i18n="hist">Histogramas</h2><p class="hint" data-i18n="histHint">Tamizado, láser y unificado, con el diseño del FW</p></div>
+      <div class="ttl"><h2 id="t-hist" data-i18n="hist">Histogramas</h2><p class="hint" data-i18n="histHint">Mismo diseño que el FW</p></div>
+      <div class="seg" role="group" aria-label="Histograma"><button type="button" data-view="hybrid" data-i18n="vHybrid">Unificado</button><button type="button" data-view="sieve" data-i18n="sieve">Tamizado</button><button type="button" data-view="laser" data-i18n="laser">Láser</button></div>
     </div>
-    <p class="soon-note" data-i18n="soon">Se completa en la próxima etapa.</p>
+    <div class="hbar">
+      <label class="field inline"><span data-i18n="fParams">Parámetros</span><select id="sel-pm"><option value="folkward">Folk &amp; Ward (1957)</option><option value="inman">Inman (1952)</option><option value="trask">Trask (1932)</option></select></label>
+      <button type="button" class="btn" id="dl-png" data-i18n="dlPng">Descargar PNG</button>
+    </div>
+    <div class="figure" id="figure"></div>
   </section>
 </main>
 
@@ -259,9 +286,15 @@ footer .nw{white-space:nowrap}
       fmtLaser: "<b>Ancho:</b> la columna A tiene los diámetros en μm y cada muestra va en una columna, con su nombre en la fila 1. La fila 2 puede tener el grupo de cada muestra. <b>Por filas:</b> columnas con encabezados de muestra, diámetro (μm), porcentaje y grupo. Escribí en la grilla o pegá desde Excel con Ctrl+V.",
       loadSieve: "Cargar tamizado", loadLaser: "Cargar láser",
       step: "Paso φ",
-      merge: "Unificar", mergeHint: "Muestra de tamizado, muestra de láser, método y φ*",
-      hist: "Histogramas", histHint: "Tamizado, láser y unificado, con el diseño del FW",
-      soon: "Se completa en la próxima etapa.",
+      merge: "Unificar",       hist: "Histogramas",
+      mergeHint: "Muestras, método y φ*", histHint: "Mismo diseño que el FW",
+      fSieve: "Muestra de tamizado", fLaser: "Muestra de láser", fMethod: "Método", fParams: "Parámetros",
+      m1: "Método 1 (original)", m2: "Método 2 (EDLT + SG)", m3: "Método 3 (provisorio)",
+      d_m1: "Tamizado para φ < φ*. Láser para φ ≥ φ*, escalado para completar 100 %.",
+      d_m2: "Finos del láser escalados con k = EDLT / ΣL(φ ≥ φ*); a las clases gruesas que coinciden con el láser se les suma k·L. Las clases gruesas sin láser quedan fijas.",
+      d_m3: "En el FW todavía no está definido: por ahora calcula igual que el método 1.",
+      vHybrid: "Unificado", dlPng: "Descargar PNG", needBoth: "Cargá el tamizado y el láser para unificar.",
+      noData: "Cargá datos para ver el histograma.",
       fellow: "Becario CONICET",
       phSieve: ["φ", "Muestra 1", "Muestra 2", "Muestra 3"],
       phLaser: ["Diámetro (μm)", "Muestra 1", "Muestra 2"],
@@ -294,9 +327,15 @@ footer .nw{white-space:nowrap}
       fmtLaser: "<b>Wide:</b> column A holds the diameters in μm and each sample goes in its own column, with its name in row 1. Row 2 may hold each sample's group. <b>Row-wise:</b> columns headed sample, diameter (μm), percent and group. Type in the grid or paste from Excel with Ctrl+V.",
       loadSieve: "Load sieve data", loadLaser: "Load laser data",
       step: "φ step",
-      merge: "Merge", mergeHint: "Sieve sample, laser sample, method and φ*",
-      hist: "Histograms", histHint: "Sieve, laser and merged, with the FW design",
-      soon: "Coming in the next step.",
+      merge: "Merge",       hist: "Histograms",
+      mergeHint: "Samples, method and φ*", histHint: "Same design as FW",
+      fSieve: "Sieve sample", fLaser: "Laser sample", fMethod: "Method", fParams: "Parameters",
+      m1: "Method 1 (original)", m2: "Method 2 (EDLT + SG)", m3: "Method 3 (placeholder)",
+      d_m1: "Sieve for φ < φ*. Laser for φ ≥ φ*, scaled to complete 100%.",
+      d_m2: "Laser fines scaled with k = EDLT / ΣL(φ ≥ φ*); coarse classes that match the laser get k·L added. Coarse classes without laser stay fixed.",
+      d_m3: "Not defined in FW yet: for now it computes the same as method 1.",
+      vHybrid: "Merged", dlPng: "Download PNG", needBoth: "Load sieve and laser data to merge.",
+      noData: "Load data to see the histogram.",
       fellow: "CONICET Fellow",
       phSieve: ["φ", "Sample 1", "Sample 2", "Sample 3"],
       phLaser: ["Diameter (μm)", "Sample 1", "Sample 2"],
@@ -944,6 +983,383 @@ footer .nw{white-space:nowrap}
   });
 
   /* ------------------------------------------------------------------ */
+  /* Cálculos del FW: parámetros, unificación e histograma               */
+  /* ------------------------------------------------------------------ */
+  function pwSum(a, lo, n) {
+    var i, r;
+    if (n < 8) { r = 0; for (i = 0; i < n; i++) r += a[lo + i]; return r; }
+    if (n <= 128) {
+      var q = [a[lo], a[lo + 1], a[lo + 2], a[lo + 3], a[lo + 4], a[lo + 5], a[lo + 6], a[lo + 7]], m = n - (n % 8);
+      for (i = 8; i < m; i += 8) for (var j = 0; j < 8; j++) q[j] += a[lo + i + j];
+      r = ((q[0] + q[1]) + (q[2] + q[3])) + ((q[4] + q[5]) + (q[6] + q[7]));
+      for (i = m; i < n; i++) r += a[lo + i];
+      return r;
+    }
+    var n2 = Math.floor(n / 2); n2 -= n2 % 8;
+    return pwSum(a, lo, n2) + pwSum(a, lo + n2, n - n2);
+  }
+  function npSum(a) { return 0 + pwSum(a, 0, a.length); }
+  function nansum(a) { return npSum(a.map(function (v) { return isNaN(v) ? 0 : v; })); }
+  function rint(x) { var r = Math.round(x); if (r - x === 0.5 && r % 2 !== 0) r -= 1; return r; }
+  function npRound(x, nd) { var f = Math.pow(10, nd); return rint(x * f) / f; }
+  function isClose(a, b) { return Math.abs(a - b) <= 1e-8 + 1e-5 * Math.abs(b); }
+  function cumDist(w) {
+    var tot = nansum(w), run = 0;
+    return w.map(function (v) { if (!isFinite(tot) || tot <= 0) return NaN; run += isNaN(v) ? 0 : v; return run * 100 / tot; });
+  }
+  function npInterp(x, xp, fp) {
+    var n = xp.length, lo = 0, hi = n;
+    if (x > xp[n - 1]) return fp[n - 1];
+    if (x < xp[0]) return fp[0];
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (x >= xp[mid]) lo = mid + 1; else hi = mid; }
+    var j = lo - 1;
+    if (j === n - 1 || xp[j] === x) return fp[j];
+    var s = (fp[j + 1] - fp[j]) / (xp[j + 1] - xp[j]), r = s * (x - xp[j]) + fp[j];
+    if (isNaN(r)) { r = s * (x - xp[j + 1]) + fp[j + 1]; if (isNaN(r) && fp[j] === fp[j + 1]) r = fp[j]; }
+    return r;
+  }
+  function pctl(phi, cum, t) {
+    var p = [];
+    phi.forEach(function (x, i) { if (isFinite(x) && isFinite(cum[i])) p.push([cum[i], x, i]); });
+    if (!p.length) return NaN;
+    p.sort(function (a, b) { return (a[0] - b[0]) || (a[2] - b[2]); });
+    var y = p.map(function (q) { return q[0]; }), x = p.map(function (q) { return q[1]; });
+    if (t <= y[0]) return x[0];
+    if (t >= y[y.length - 1]) return x[x.length - 1];
+    return npInterp(t, y, x);
+  }
+  // calculate_parameters
+  function calcParams(phiIn, wIn, method) {
+    var NA = { median: NaN, sigma: NaN, skewness: NaN, kurtosis: NaN, mean: NaN }, it = [];
+    phiIn.forEach(function (p, i) { if (isFinite(p) && isFinite(wIn[i])) it.push([p, wIn[i], i]); });
+    if (!it.length || !(nansum(it.map(function (q) { return q[1]; })) > 0)) return NA;
+    it.sort(function (a, b) { return (a[0] - b[0]) || (a[2] - b[2]); });
+    var phi = it.map(function (q) { return q[0]; }), cum = cumDist(it.map(function (q) { return q[1]; }));
+    if (!cum.some(isFinite)) return NA;
+    function P(t) { return pctl(phi, cum, t); }
+    if (method === "inman") {
+      var a = P(16), b = P(50), c = P(84);
+      if (![a, b, c].every(isFinite)) return NA;
+      var d = c - a;
+      return { median: b, sigma: d !== 0 ? d / 2 : NaN, skewness: d !== 0 ? (a + c - 2 * b) / d : NaN, kurtosis: NaN, mean: (a + c) / 2 };
+    }
+    if (method === "trask") {
+      var t25 = P(25), t50 = P(50), t75 = P(75), t16 = P(16), t84 = P(84);
+      if (![t25, t50, t75].every(isFinite)) return NA;
+      return { median: t50, sigma: (t75 - t25) / 2, skewness: NaN, kurtosis: NaN, mean: (isFinite(t16) && isFinite(t84)) ? (t16 + t50 + t84) / 3 : t50 };
+    }
+    var p5 = P(5), p16 = P(16), p25 = P(25), p50 = P(50), p75 = P(75), p84 = P(84), p95 = P(95);
+    if (![p5, p16, p25, p50, p75, p84, p95].every(isFinite)) return NA;
+    var d1 = p84 - p16, d2 = p95 - p5, d3 = p75 - p25;
+    var t1 = d1 !== 0 ? (p16 + p84 - 2 * p50) / (2 * d1) : NaN, t2 = d2 !== 0 ? (p5 + p95 - 2 * p50) / (2 * d2) : NaN;
+    var tt = [t1, t2].filter(isFinite);
+    return {
+      median: p50, sigma: (d1 !== 0 ? d1 / 4 : NaN) + (d2 !== 0 ? d2 / 6.6 : NaN),
+      skewness: tt.length ? npSum(tt) : NaN, kurtosis: d3 !== 0 ? d2 / (2.44 * d3) : NaN, mean: (p16 + p50 + p84) / 3
+    };
+  }
+  // groupby("phi").sum() (Kahan, ordenado por φ)
+  function sumByPhi(rows) {
+    var m = new Map();
+    rows.forEach(function (r) { if (isNaN(r.phi)) return; if (!m.has(r.phi)) m.set(r.phi, new Kahan()); m.get(r.phi).add(r.w); });
+    var out = []; m.forEach(function (k, p) { out.push({ phi: p, w: k.s }); });
+    return out.sort(function (a, b) { return a.phi - b.phi; });
+  }
+  function renorm100(rows) {
+    var k = new Kahan(); rows.forEach(function (r) { k.add(r.w); });
+    var tot = k.s === 0 ? NaN : k.s;
+    if (isFinite(tot)) rows.forEach(function (r) { r.w = r.w * (100 / tot); });
+    return rows;
+  }
+  function finiteRows(rows) { return rows.filter(function (r) { return isFinite(r.phi) && isFinite(r.w); }).map(function (r) { return { phi: r.phi, w: r.w }; }); }
+  function ws(rows) { return rows.map(function (r) { return r.w; }); }
+  // _build_hybrid_method1 (M3 usa la misma cuenta)
+  function hybridM1(S, Lr, cut) {
+    S = finiteRows(S); Lr = finiteRows(Lr);
+    var sk = S.filter(function (r) { return r.phi < cut; }), lk = Lr.filter(function (r) { return r.phi >= cut; });
+    var sc = sk.length ? npSum(ws(sk)) : 0, lf = lk.length ? npSum(ws(lk)) : 0;
+    var k = lf > 0 ? Math.max(0, 100 - sc) / lf : 0, rows = sk.slice();
+    if (lk.length && k > 0) lk.forEach(function (r) { rows.push({ phi: r.phi, w: r.w * k }); });
+    if (!rows.length) return null;
+    return { rows: renorm100(sumByPhi(rows)), meta: { k: k } };
+  }
+  // _build_hybrid_method2 (EDLT + SG)
+  function hybridM2(S, Lr, cut) {
+    var s = sumByPhi(finiteRows(S).map(function (r) { return { phi: npRound(r.phi, 2), w: r.w }; }));
+    var l = sumByPhi(finiteRows(Lr).map(function (r) { return { phi: npRound(r.phi, 2), w: r.w }; }));
+    var edlt = npSum(ws(s.filter(function (r) { return r.phi >= cut; })));
+    var lF = l.filter(function (r) { return r.phi >= cut; }), lfs = npSum(ws(lF));
+    var k = lfs > 0 ? edlt / lfs : 0;
+    var fines = lF.map(function (r) { return { phi: r.phi, w: k * r.w }; });
+    var lc = new Map(); l.forEach(function (r) { if (r.phi < cut) lc.set(r.phi, r.w); });
+    var sg = [], fixed = [];
+    s.forEach(function (r) { if (r.phi >= cut) return; if (lc.has(r.phi)) sg.push({ phi: r.phi, w: r.w + k * lc.get(r.phi) }); else fixed.push({ phi: r.phi, w: r.w }); });
+    var tf = fixed.length ? npSum(ws(fixed)) : 0, mpre = npSum(ws(sg)) + npSum(ws(fines));
+    var alpha = mpre > 0 ? Math.max(0, 100 - tf) / mpre : 1;
+    sg.concat(fines).forEach(function (r) { r.w = r.w * alpha; });
+    var rows = fixed.concat(sg, fines);
+    if (!rows.length) return null;
+    return { rows: renorm100(sumByPhi(rows)), meta: { k: k, edlt: edlt, alpha: alpha } };
+  }
+
+  /* Formato de números como Python */
+  function pyFixed(x, nd) {
+    var neg = x < 0 || Object.is(x, -0), ax = Math.abs(x), s = ax.toFixed(nd), e = ax.toFixed(Math.min(100, nd + 40));
+    var dot = e.indexOf("."), rest = e.slice(dot + 1 + nd);
+    if (/^50*$/.test(rest)) { var tr = nd ? e.slice(0, dot + 1 + nd) : e.slice(0, dot); if (+tr.slice(-1) % 2 === 0) s = tr; }
+    return (neg ? "-" : "") + s;
+  }
+  function fmtNum(v, nd) { if (!isFinite(v)) return ""; return pyFixed(v, nd === undefined ? 2 : nd).replace(/0+$/, "").replace(/\.+$/, ""); }
+  function pow10(k) { return k >= 0 ? Math.pow(10, k) : 1 / Math.pow(10, -k); }
+  function pyDivmod(a, b) {
+    var mod = a % b, div = (a - mod) / b, fl;
+    if (mod) { if ((b < 0) !== (mod < 0)) { mod += b; div -= 1; } } else mod = 0;
+    if (div) { fl = Math.floor(div); if (div - fl > 0.5) fl += 1; } else fl = 0;
+    return [fl, mod];
+  }
+  // MaxNLocator (nbins 9, steps 1-2-2.5-5-10) de matplotlib
+  function maxNTicks(vmin, vmax, nb) {
+    var dv = Math.abs(vmax - vmin), scale = pow10(Math.floor(Math.log10(dv / nb)));
+    var steps = [0.1 * 1, 0.1 * 2, 0.1 * 2.5, 0.1 * 5, 1, 2, 2.5, 5, 10, 20].map(function (s) { return s * scale; });
+    var raw = (vmax - vmin) / nb, ist = steps.length - 1, ticks = [];
+    for (var i = 0; i < steps.length; i++) if (steps[i] >= raw) { ist = i; break; }
+    for (var k = ist; k >= 0; k--) {
+      var st = steps[k], best = pyDivmod(vmin, st)[0] * st;
+      var a = pyDivmod(vmin - best, st), b = pyDivmod(vmax - best, st);
+      var low = Math.abs(a[1] / st - 1) < 1e-10 ? a[0] + 1 : a[0], high = Math.abs(b[1] / st) < 1e-10 ? b[0] : b[0] + 1;
+      ticks = []; for (var t = low; t <= high; t++) ticks.push(t * st + best);
+      if (ticks.filter(function (v) { return v <= vmax && v >= vmin; }).length >= 2) break;
+    }
+    return ticks;
+  }
+  function scalarLabels(locs) {
+    var rng = Math.max.apply(null, locs) - Math.min.apply(null, locs);
+    if (rng === 0) rng = Math.max.apply(null, locs.map(Math.abs)) || 1;
+    var oom = Math.floor(Math.log10(rng)), sf = Math.max(0, 3 - oom), th = 1e-3 * pow10(oom);
+    while (sf >= 0) { var f = pow10(sf), mx = 0; locs.forEach(function (v) { mx = Math.max(mx, Math.abs(v - rint(v * f) / f)); }); if (mx < th) sf--; else break; }
+    sf++;
+    return locs.map(function (v) { return pyFixed(Math.abs(v) < 1e-8 ? 0 : v, sf).replace(/^-/, "−"); });
+  }
+  function histStep(ph) {
+    var u = Array.from(new Set(ph)).sort(function (a, b) { return a - b; }), d = [];
+    for (var i = 1; i < u.length; i++) { var x = u[i] - u[i - 1]; if (isFinite(x) && x > 0) d.push(x); }
+    if (!d.length) return 1;
+    d.sort(function (a, b) { return a - b; });
+    var m = d.length, md = m % 2 ? d[(m - 1) / 2] : (d[m / 2 - 1] + d[m / 2]) / 2;
+    return md > 0 ? md : 1;
+  }
+  function niceTicks(lo, hi, step) {
+    if (isClose(lo, hi)) return [lo];
+    var n = Math.floor((hi - lo) / step + 1e-9) + 1, t = [];
+    for (var i = 0; i < Math.max(1, n); i++) t.push(lo + i * step);
+    t = t.filter(function (v) { return v <= hi + Math.max(1e-9, step * 1e-7); });
+    if (!t.length || !isClose(t[0], lo)) t.unshift(lo);
+    if (!isClose(t[t.length - 1], hi)) t.push(hi);
+    if (t.length > 21) {
+      var N = t.length, st = (N - 1) / 20, idx = [];
+      for (var j = 0; j < 21; j++) { var q = j === 20 ? N - 1 : rint(j * st); if (idx.indexOf(q) < 0) idx.push(q); }
+      t = idx.map(function (q) { return t[q]; }); t[0] = lo; t[t.length - 1] = hi;
+    }
+    return t.map(function (v) { return npRound(v, 10); });
+  }
+
+  /* Texto con las métricas de matplotlib (DejaVu Sans) */
+  var PT = 100 / 72, mctx = null;
+  function meas(s, px, bold) {
+    if (!mctx) mctx = document.createElement("canvas").getContext("2d");
+    mctx.font = (bold ? "700 " : "400 ") + px + 'px "DejaVu Sans FW"';
+    var m = mctx.measureText(s);
+    return { w: m.actualBoundingBoxLeft + m.actualBoundingBoxRight, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
+  }
+  function tm(s, size, bold) {
+    var px = size * PT, lp = meas("lp", px, bold), m = s ? meas(s, px, bold) : { w: 0, a: 0, d: 0 };
+    return { px: px, w: m.w, h: Math.max(m.a + m.d, lp.a + lp.d), d: Math.max(m.d, lp.d), lpa: lp.a };
+  }
+  function xmlEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function tEl(s, px, bold, x, y, color, rot) {
+    var pos = rot ? ' transform="translate(' + x.toFixed(2) + " " + y.toFixed(2) + ') rotate(-90)"' : ' x="' + x.toFixed(2) + '" y="' + y.toFixed(2) + '"';
+    return "<text" + pos + ' font-size="' + px.toFixed(3) + '"' + (bold ? ' font-weight="700"' : "") + ' fill="' + (color || "#000") + '">' + xmlEsc(s) + "</text>";
+  }
+  function place(s, size, bold, ax, ay, ha, va, color) {
+    var t = tm(s, size, bold), x = ha === "center" ? ax - t.w / 2 : (ha === "right" ? ax - t.w : ax);
+    var top = va === "top" ? ay : (va === "baseline" ? ay - (t.h - t.d) : ay - (t.h - t.d) / 2);
+    return { svg: tEl(s, t.px, bold, x, top + t.h - t.d, color), x0: x, x1: x + t.w, y1: top + t.h };
+  }
+  function f2(v) { return (+v.toFixed(2)).toString(); }
+
+  // plot_histogram del FW (estilo por defecto), como SVG de 1100 x 700
+  function svgHistogram(title, rows, prm) {
+    var W = 1100, H = 700, x0 = 132, x1 = 968, yT = 112, yB = 588, TL = 7 * PT, PAD = 10.5 * PT, LP = 4 * PT;
+    var d = sumByPhi(finiteRows(rows)), pos = [];
+    d.forEach(function (r, i) { if (r.w > 0) pos.push(i); });
+    if (pos.length) d = d.slice(pos[0], pos[pos.length - 1] + 1);
+    if (!d.length) return "";
+    var phi = d.map(function (r) { return r.phi; }), wt = ws(d);
+    var lo = Math.min.apply(null, phi), hi = Math.max.apply(null, phi), step = histStep(phi), bw = Math.max(0.01, 0.92 * step);
+    var tk = niceTicks(lo, hi, step).filter(function (v) { return lo - 1e-9 <= v && v <= hi + 1e-9; });
+    if (!tk.length || !isClose(tk[0], lo)) tk.unshift(lo);
+    if (!isClose(tk[tk.length - 1], hi)) tk.push(hi);
+    var cum = cumDist(wt), ymax = Math.max.apply(null, wt);
+    if (!isFinite(ymax) || ymax <= 0) ymax = 1;
+    var ytop = ymax * 1.18, xa = lo - bw / 2, xb = hi + bw / 2, pad = Math.max(Math.max(Math.abs(xb - xa), 1e-9) * 0.008, bw * 0.10, 1e-9);
+    var xl0 = xa - pad, xl1 = xb + pad;
+    function X(v) { return x0 + (v - xl0) * (x1 - x0) / (xl1 - xl0); }
+    function Y(v) { return yB - v * (yB - yT) / ytop; }
+    function Y2(v) { return yB - v * (yB - yT) / 102; }
+    function sn(v) { return Math.floor(v + 0.5); }
+    var o = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" font-family="&quot;DejaVu Sans FW&quot;, &quot;DejaVu Sans&quot;, Verdana, sans-serif" style="white-space:pre"><rect width="' + W + '" height="' + H + '" fill="#fff"/>'];
+    var tkw = 1.8 * PT, tick = ' stroke="#000" stroke-width="' + tkw.toFixed(3) + '" fill="none"';
+    // eje Y izquierdo
+    var yl = maxNTicks(0, ytop, 9), rt = (ytop) * 1e-10;
+    var ylab = scalarLabels(yl), minL = x0 - TL;
+    yl.forEach(function (v, i) {
+      if (!(v >= -rt && v <= ytop + rt)) return;
+      var yy = sn(Y(v)) + 0.5;
+      o.push('<path d="M' + (sn(x0) + 0.5) + " " + yy + "H" + (sn(x0) - 9.5) + '"' + tick + "/>");
+      var t = place(ylab[i], 11, false, x0 - PAD, Y(v), "right", "center_baseline");
+      o.push(t.svg); minL = Math.min(minL, t.x0);
+    });
+    // eje X
+    var maxB = yB + TL;
+    tk.forEach(function (v) {
+      var xx = sn(X(v)) + 0.5;
+      o.push('<path d="M' + xx + " " + (sn(yB) + 0.5) + "V" + (sn(yB) + 10.5) + '"' + tick + "/>");
+      var t = place(fmtNum(v, 2), 11, false, X(v), yB + PAD, "center", "top");
+      o.push(t.svg); maxB = Math.max(maxB, t.y1);
+    });
+    o.push(place("PHI (Φ)", 16, true, (x0 + x1) / 2, maxB + LP, "center", "top").svg);
+    var tl = tm("%Wt", 16, true);
+    o.push(tEl("%Wt", tl.px, true, minL - LP - tl.d, (yT + yB) / 2 + tl.w / 2, "#000", true));
+    // barras
+    var bl = (1.2 * PT).toFixed(3);
+    d.forEach(function (r) {
+      var a = sn(X(r.phi - bw / 2)), b = sn(X(r.phi + bw / 2)), t = sn(Y(r.w)), z = sn(Y(0));
+      o.push('<path d="M' + a + " " + z + "H" + b + "V" + t + "H" + a + 'Z" fill="#8c8c8c" stroke="#000" stroke-width="' + bl + '"/>');
+    });
+    var sp = ' stroke="#000" stroke-width="' + (2 * PT).toFixed(3) + '" stroke-linecap="square" fill="none"';
+    o.push('<path d="M' + (sn(x0) + 0.5) + " " + (sn(yB) + 0.5) + "V" + (sn(yT) + 0.5) + '"' + sp + "/>");
+    o.push('<path d="M' + (sn(x0) + 0.5) + " " + (sn(yB) + 0.5) + "H" + (sn(x1) + 0.5) + '"' + sp + "/>");
+    // parámetros y título
+    if (prm) {
+      var lines = [];
+      if (isFinite(prm.sigma)) lines.push("σ: " + fmtNum(prm.sigma));
+      if (isFinite(prm.kurtosis)) lines.push("K: " + fmtNum(prm.kurtosis));
+      if (isFinite(prm.median)) lines.push("Md: " + fmtNum(prm.median));
+      if (isFinite(prm.mean)) lines.push("M: " + fmtNum(prm.mean));
+      if (isFinite(prm.skewness)) lines.push("Sk: " + fmtNum(prm.skewness));
+      var ty = 0, axn = x0 + 0.10 * (x1 - x0), ayn = yB - 0.88 * (yB - yT);
+      lines.forEach(function (s, i) {
+        var t = tm(s, 12, false);
+        ty = i === 0 ? -(t.h - t.d) : ty - Math.max((t.lpa) * 1.2, (t.h - t.d) * 1.2);
+        o.push(tEl(s, t.px, false, axn, ayn - ty, "#666666"));
+        ty -= t.d;
+      });
+    }
+    o.push(place(title, 24, true, (x0 + x1) / 2, yT - 14 * PT, "center", "baseline").svg);
+    // eje derecho (acumulada)
+    var maxR = x1 + TL;
+    [0, 20, 40, 60, 80, 100].forEach(function (v) {
+      var yy = sn(Y2(v)) + 0.5;
+      o.push('<path d="M' + (sn(x1) + 0.5) + " " + yy + "H" + (sn(x1) + 10.5) + '"' + tick + "/>");
+      var t = place(String(v), 11, false, x1 + PAD, Y2(v), "left", "center_baseline");
+      o.push(t.svg); maxR = Math.max(maxR, t.x1);
+    });
+    var tr = tm("%Wt cumulative frequency", 14, true);
+    o.push(tEl("%Wt cumulative frequency", tr.px, true, maxR + LP + tr.h - tr.d, (yT + yB) / 2 + tr.w / 2, "#000", true));
+    o.push('<path d="M' + (sn(x1) + 0.5) + " " + (sn(yB) + 0.5) + "V" + (sn(yT) + 0.5) + '"' + sp + "/>");
+    var pts = phi.map(function (p, i) { return X(p).toFixed(2) + " " + Y2(cum[i]).toFixed(2); });
+    o.push('<path d="M' + pts.join("L") + '" fill="none" stroke="#000" stroke-width="' + (1.8 * PT).toFixed(3) + '" stroke-linejoin="round" stroke-linecap="square"/>');
+    phi.forEach(function (p, i) {
+      if (!isFinite(cum[i])) return;
+      o.push('<rect x="' + (sn(X(p)) - 4) + '" y="' + (sn(Y2(cum[i])) - 4) + '" width="8" height="8" fill="#fff" stroke="#000" stroke-width="' + (1.26 * PT).toFixed(3) + '"/>');
+    });
+    o.push("</svg>");
+    return o.join("");
+  }
+
+  /* Pantalla: unificar e histogramas */
+  var ui = { view: null, svg: "", title: "" };
+  function opts(sel, vals, labels, keep) {
+    var cur = keep ? sel.value : null;
+    sel.innerHTML = vals.map(function (v, i) { return '<option value="' + esc(v) + '">' + escT(labels ? labels[i] : v) + "</option>"; }).join("");
+    if (cur !== null && vals.indexOf(cur) >= 0) sel.value = cur;
+    sel.disabled = !vals.length;
+  }
+  function phiTxt(v) { var s = isClose(v, Math.round(v)) ? String(Math.round(v)) : fmtNum(v, 2); return lang === "es" ? s.replace(".", ",") : s; }
+  function sieveRowsOf(s) { return state.sieve.rows.filter(function (r) { return r.sample === s; }); }
+  function laserRowsOf(s) { return state.laser.binned.filter(function (r) { return r.sample === s; }); }
+  function refreshSelects() {
+    var S = state.sieve, Lz = state.laser && state.laser.binned ? state.laser : null;
+    var sOld = $("#sel-sieve").value;
+    opts($("#sel-sieve"), S ? S.samples : [], null, true);
+    opts($("#sel-laser"), Lz ? Lz.samples : [], null, true);
+    var both = !!(S && Lz);
+    $("#sel-method").disabled = !both;
+    var cuts = [];
+    if (Lz) { var u = {}; Lz.binned.forEach(function (r) { u[r.phi] = r.phi; }); cuts = Object.keys(u).map(function (k) { return u[k]; }).sort(function (a, b) { return a - b; }); }
+    var prev = $("#sel-cut").value, changedSieve = sOld !== $("#sel-sieve").value;
+    opts($("#sel-cut"), both ? cuts.map(String) : [], both ? cuts.map(phiTxt) : null, !changedSieve);
+    if (both && (changedSieve || cuts.map(String).indexOf(prev) < 0)) {
+      var mx = Math.max.apply(null, sieveRowsOf($("#sel-sieve").value).map(function (r) { return r.phi; })), pick = cuts[0];
+      cuts.forEach(function (c) { if (c <= mx) pick = c; });
+      $("#sel-cut").value = String(pick);
+    }
+    Array.prototype.forEach.call($("#sel-method").options, function (op) { op.textContent = L(op.value); });
+  }
+  function render() {
+    var both = !!(state.sieve && state.laser && state.laser.binned);
+    var avail = { hybrid: both, sieve: !!state.sieve, laser: !!(state.laser && state.laser.binned) };
+    if (both && !ui.both) ui.view = "hybrid";
+    ui.both = both;
+    if (!ui.view || !avail[ui.view]) ui.view = ["hybrid", "sieve", "laser"].filter(function (k) { return avail[k]; })[0] || null;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) { var k = b.getAttribute("data-view"); b.disabled = !avail[k]; b.setAttribute("aria-pressed", k === ui.view ? "true" : "false"); });
+    var m = $("#sel-method").value, pm = $("#sel-pm").value, info = "";
+    var hyb = null, cut = +$("#sel-cut").value;
+    if (both) {
+      var S = sieveRowsOf($("#sel-sieve").value), Lr = laserRowsOf($("#sel-laser").value);
+      hyb = m === "m2" ? hybridM2(S, Lr, cut) : hybridM1(S, Lr, cut);
+      info = L("d_" + m);
+      if (hyb) info += " k = " + fmtNum(hyb.meta.k, 4) + (m === "m2" ? " · α = " + fmtNum(hyb.meta.alpha, 4) : "");
+    }
+    $("#mdesc").textContent = both ? info : L("needBoth");
+    var rows = null, title = "";
+    if (ui.view === "hybrid" && hyb) { rows = hyb.rows; title = $("#sel-sieve").value + "-A"; }
+    else if (ui.view === "sieve") { rows = sieveRowsOf($("#sel-sieve").value); title = $("#sel-sieve").value; }
+    else if (ui.view === "laser") { rows = laserRowsOf($("#sel-laser").value); title = $("#sel-laser").value; }
+    var fig = $("#figure");
+    ui.svg = rows ? svgHistogram(title, rows, calcParams(rows.map(function (r) { return r.phi; }), ws(rows), pm)) : "";
+    ui.title = title;
+    fig.innerHTML = ui.svg || '<p class="empty">' + escT(L("noData")) + "</p>";
+    $("#dl-png").disabled = !ui.svg;
+  }
+  var fontsReady = document.fonts ? Promise.all([document.fonts.load('400 16px "DejaVu Sans FW"'), document.fonts.load('700 16px "DejaVu Sans FW"')]).catch(function () {}) : Promise.resolve();
+  function update() { fontsReady.then(function () { refreshSelects(); render(); }); }
+  document.addEventListener("fw:data", update);
+  ["#sel-sieve", "#sel-laser", "#sel-method", "#sel-cut", "#sel-pm"].forEach(function (s) { $(s).addEventListener("change", s === "#sel-sieve" ? update : render); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) { b.addEventListener("click", function () { ui.view = b.getAttribute("data-view"); render(); }); });
+  // PNG a 300 dpi (como el FW al exportar)
+  $("#dl-png").addEventListener("click", function () {
+    if (!ui.svg) return;
+    var sc = 3, c = document.createElement("canvas"), img = new Image(), url;
+    Promise.all(["../assets/fonts/dejavu-sans.woff2", "../assets/fonts/dejavu-sans-bold.woff2"].map(function (u) {
+      return fetch(u).then(function (r) { return r.arrayBuffer(); }).then(function (b) { var a = new Uint8Array(b), s = ""; for (var i = 0; i < a.length; i += 32768) s += String.fromCharCode.apply(null, a.subarray(i, i + 32768)); return btoa(s); });
+    })).then(function (b) {
+      var css = '<style>@font-face{font-family:"DejaVu Sans FW";font-weight:400;src:url(data:font/woff2;base64,' + b[0] + ')}@font-face{font-family:"DejaVu Sans FW";font-weight:700;src:url(data:font/woff2;base64,' + b[1] + ")}</style>";
+      var s = ui.svg.replace(/^(<svg[^>]*>)/, "$1" + css);
+      url = URL.createObjectURL(new Blob([s], { type: "image/svg+xml" }));
+      img.onload = function () {
+        setTimeout(function () {
+          c.width = 1100 * sc; c.height = 700 * sc;
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          c.toBlob(function (bl) { var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = (ui.title || "histograma").replace(/[\\/:*?"<>|]/g, "_") + ".png"; document.body.appendChild(a); a.click(); a.remove(); });
+        }, 60);
+      };
+      img.src = url;
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
   /* Idioma                                                              */
   /* ------------------------------------------------------------------ */
   function applyLang(l, save) {
@@ -958,6 +1374,7 @@ footer .nw{white-space:nowrap}
     gridS.render(); gridL.render();
     renderStatus("sieve"); renderStatus("laser");
     if (save) { try { localStorage.setItem("fw-lang", l); } catch (e) {} }
+    if (typeof update === "function") update();
   }
   Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) {
     b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang"), true); });
@@ -965,7 +1382,7 @@ footer .nw{white-space:nowrap}
   applyLang(lang, false);
 
   // Funciones expuestas para las verificaciones contra el FW original
-  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser };
+  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser, calcParams: calcParams, hybridM1: hybridM1, hybridM2: hybridM2, svgHistogram: svgHistogram };
 })();
 </script>
 </body>
