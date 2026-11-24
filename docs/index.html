@@ -90,6 +90,7 @@ footer{padding:14px 24px 22px;text-align:center;font-size:.84rem;line-height:1.5
 footer p{margin:0}
 footer .by{color:#173654}
 footer .by strong{font-weight:800;color:var(--ink)}
+footer .tool{color:var(--muted);text-decoration:underline;text-decoration-color:#c5d4e2;text-underline-offset:2px}footer .tool:hover{color:var(--ink)}
 footer .sep{margin:0 8px;color:#9fb3c6}
 footer .nw{white-space:nowrap}
 .lang{position:absolute;top:16px;right:18px;z-index:5;display:flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.85);border:1px solid var(--line);box-shadow:0 1px 2px rgba(11,37,64,.05)}
@@ -172,7 +173,7 @@ footer .nw{white-space:nowrap}
 </main>
 
 <footer>
-  <p class="by">by <strong>Santiago Abel Retamoso</strong><span class="sep">·</span><span data-i18n="fellow">Becario CONICET</span></p>
+  <p class="by">by <strong>Santiago Abel Retamoso</strong><span class="sep">·</span><span data-i18n="fellow">Becario CONICET</span><span class="sep">·</span><a class="tool" href="unificacion/" data-i18n="tool">Unificación láser-tamizado</a></p>
   <p data-i18n="lab">Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span></p>
   <p>Universidad Nacional de Salta</p>
 </footer>
@@ -192,7 +193,7 @@ footer .nw{white-space:nowrap}
       gh: "Ver en GitHub",
       ghsub: "Código fuente · Licencia GPL v3.0",
       note: 'Requiere Python 3.9 o superior.<span class="win"> En Windows, descomprimir el ZIP y ejecutar <b>Instalar FW-Granulometry.bat</b>.</span>',
-      fellow: "Becario CONICET",
+      fellow: "Becario CONICET", tool: "Unificación láser-tamizado",
       lab: 'Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span>',
       visit: ["visita", "visitas"], dlc: ["descarga", "descargas"], loc: "es-AR"
     },
@@ -205,7 +206,7 @@ footer .nw{white-space:nowrap}
       gh: "View on GitHub",
       ghsub: "Source code · GPL v3.0 license",
       note: 'Requires Python 3.9 or later.<span class="win"> On Windows, unzip the file and run <b>Instalar FW-Granulometry.bat</b>.</span>',
-      fellow: "CONICET Fellow",
+      fellow: "CONICET Fellow", tool: "Laser and sieve merging",
       lab: 'Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span>',
       visit: ["visit", "visits"], dlc: ["download", "downloads"], loc: "en-US"
     }
