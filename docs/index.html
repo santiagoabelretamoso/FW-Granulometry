@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FW-Granulometry 2.0 · Análisis granulométrico de tefras</title>
-<meta name="description" content="FW-Granulometry 2.0 es un software libre y de código abierto para el análisis granulométrico de tefras: parámetros granulométricos, gráficos de granulometría volcánica, unificación de láser y tamizado y análisis de componentes.">
+<meta name="description" content="FW-Granulometry 2.0 es un software libre y gratuito para el análisis granulométrico de tefras y depósitos volcaniclásticos.">
 <meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="https://santiagoabelretamoso.github.io/FW-Granulometry/">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -14,7 +14,7 @@
 <meta property="og:locale" content="es_AR">
 <meta property="og:site_name" content="FW-Granulometry">
 <meta property="og:title" content="FW-Granulometry 2.0">
-<meta property="og:description" content="Software libre para el análisis granulométrico de tefras. Parámetros granulométricos, gráficos de granulometría volcánica, láser y tamizado, y análisis de componentes.">
+<meta property="og:description" content="Software libre y gratuito para el análisis granulométrico de tefras y depósitos volcaniclásticos.">
 <meta property="og:url" content="https://santiagoabelretamoso.github.io/FW-Granulometry/">
 <meta property="og:image" content="https://santiagoabelretamoso.github.io/FW-Granulometry/assets/og-fw-granulometry.png">
 <meta property="og:image:width" content="1200">
@@ -25,391 +25,122 @@
 @font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-weight:400 800;font-display:swap;src:url("assets/fonts/plus-jakarta-sans-latin.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
 :root{
-  --bg:#ffffff;
-  --soft:#f2f8fc;
   --ink:#0b2540;
   --text:#2f4760;
   --muted:#566d86;
-  --line:#e1eaf2;
-  --line-2:#cbdbea;
+  --line:#dbe7f1;
   --accent:#0667bf;
   --grad:linear-gradient(100deg,#06d6fe 0%,#0ab4ff 50%,#1a8bff 100%);
   --on-grad:#04213a;
-  --gutter:24px;
-  --r:20px;
   color-scheme:light;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip}
+html{-webkit-text-size-adjust:100%;background:#fff}
+body{
+  margin:0;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;position:relative;overflow-x:clip;
+  background:
+    radial-gradient(760px 460px at 50% -6%,rgba(6,214,254,.22),transparent 68%),
+    radial-gradient(620px 420px at 96% 4%,rgba(26,139,255,.13),transparent 66%),
+    radial-gradient(620px 420px at 4% 100%,rgba(6,214,254,.11),transparent 66%),
+    #ffffff;
+  color:var(--text);
+  font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+body::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:var(--grad)}
 img,svg{display:block}
 a{color:inherit}
-.shell{width:min(1160px,100% - 2*var(--gutter));margin-inline:auto}
-.skip{position:absolute;left:-9999px;top:10px;z-index:100;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-weight:700}
-.skip:focus{left:16px}
-a:focus-visible,.btn:focus-visible{outline:3px solid #1592ff;outline-offset:3px;border-radius:14px}
+a:focus-visible{outline:3px solid #1592ff;outline-offset:3px;border-radius:12px}
 
-/* Encabezado */
-.header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.88);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid var(--line)}
-.header .shell{display:flex;align-items:center;gap:28px;height:70px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap}
-.brand img{width:34px;height:34px}
-.nav{display:flex;gap:28px;margin-left:auto}
-.nav a{color:var(--muted);text-decoration:none;font-size:.95rem;font-weight:600}
-.nav a:hover{color:var(--ink)}
-.header-actions{display:flex;align-items:center;gap:10px}
-.icon-btn{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;color:var(--ink);border:1px solid var(--line-2);background:#fff}
-.icon-btn:hover{border-color:#9fc4e3}
-.icon-btn svg{width:20px;height:20px}
+main{flex:1;display:flex;padding:56px 24px 24px}
+.hero{margin:auto;width:100%;max-width:780px;text-align:center}
 
-/* Botones */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 24px;border-radius:14px;font:inherit;font-weight:700;font-size:1rem;text-decoration:none;white-space:nowrap;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background-color .15s ease}
-.btn svg{width:20px;height:20px;flex:none}
-.btn-primary{background:var(--grad);color:var(--on-grad);box-shadow:0 14px 30px -14px rgba(21,146,255,.65),inset 0 1px 0 rgba(255,255,255,.5)}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 18px 36px -14px rgba(21,146,255,.8),inset 0 1px 0 rgba(255,255,255,.5)}
-.btn-outline{background:#fff;color:var(--ink);border:1.5px solid var(--line-2)}
-.btn-outline:hover{border-color:#8fbce0;background:#fbfdff}
-.btn-white{background:#fff;color:var(--on-grad);box-shadow:0 14px 30px -14px rgba(4,33,58,.5)}
-.btn-white:hover{transform:translateY(-1px)}
-.btn-off{background:#f4f7fa;color:#7b8fa5;border:1.5px dashed var(--line-2);cursor:default}
-.btn-sm{height:42px;padding:0 16px;font-size:.93rem;border-radius:12px;gap:8px}
-.btn-sm svg{width:18px;height:18px}
-.btn-big{height:68px;padding:0 30px;border-radius:18px;gap:14px;text-align:left}
-.btn-big svg{width:24px;height:24px}
-.btn-big .lbl{display:flex;flex-direction:column;line-height:1.2}
-.btn-big .lbl strong{font-size:1.08rem;font-weight:800}
-.btn-big .lbl small{font-size:.8rem;font-weight:600;opacity:.78;margin-top:3px}
+.mark{width:100px;height:100px;margin:0 auto 26px;border-radius:28px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;box-shadow:0 1px 2px rgba(11,37,64,.06),0 20px 44px -20px rgba(21,146,255,.55)}
+.mark img{width:70px;height:70px}
 
-/* Portada */
-.hero{position:relative;text-align:center;padding:60px 0 64px;background:radial-gradient(780px 380px at 15% -8%,rgba(6,214,254,.24),transparent 62%),radial-gradient(820px 420px at 88% -6%,rgba(21,146,255,.2),transparent 62%),linear-gradient(180deg,#f1fbff 0%,#ffffff 78%)}
-.pill{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:6px 14px;border-radius:999px;background:#e3f8ff;border:1px solid #b9ecfd;color:var(--accent);font-size:.86rem;font-weight:700}
-.pill .dot{width:8px;height:8px;border-radius:50%;background:#06c4f2}
-.title-row{display:flex;align-items:center;justify-content:center;gap:18px;margin:22px 0 12px}
-.title-row img{width:72px;height:72px;filter:drop-shadow(0 10px 18px rgba(21,146,255,.28))}
-h1{margin:0;font-size:clamp(2.3rem,4.4vw + .4rem,4.1rem);line-height:1;letter-spacing:-.045em;font-weight:800;color:var(--ink)}
-.subtitle{margin:0 auto 12px;max-width:30em;font-size:clamp(1.18rem,1.8vw + .2rem,1.5rem);line-height:1.3;font-weight:700;letter-spacing:-.02em;color:#173654;text-wrap:balance}
-.desc{margin:0 auto 30px;max-width:41em;font-size:1.08rem;color:var(--muted);text-wrap:balance}
-.cta-row{display:flex;justify-content:center;flex-wrap:wrap;gap:14px}
-.req{margin:16px 0 0;font-size:.9rem;color:var(--muted)}
-.chips{list-style:none;padding:0;margin:30px auto 0;max-width:1000px;display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
-.chips li{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;background:#fff;border:1px solid var(--line);border-radius:999px;font-size:.92rem;font-weight:600;color:#173654;box-shadow:0 1px 2px rgba(11,37,64,.05)}
-.chips svg{width:18px;height:18px;color:#1287f5;flex:none}
+h1{margin:0;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 14px;font-size:clamp(2.25rem,1.35rem + 3.6vw,3.9rem);line-height:1.04;letter-spacing:-.045em;font-weight:800;color:var(--ink)}
+.ver{display:inline-block;padding:5px 12px;border-radius:999px;background:var(--grad);color:var(--on-grad);font-size:1rem;line-height:1.2;letter-spacing:0;font-weight:800;box-shadow:0 8px 18px -10px rgba(21,146,255,.8)}
+.tagline{margin:14px auto 0;max-width:30em;font-size:clamp(1.1rem,.96rem + .7vw,1.4rem);line-height:1.32;font-weight:700;letter-spacing:-.02em;color:#173654;text-wrap:balance}
+.desc{margin:14px auto 0;max-width:37em;font-size:clamp(.98rem,.94rem + .2vw,1.06rem);color:var(--muted);text-wrap:balance}
 
-/* Secciones */
-section[id]{scroll-margin-top:86px}
-.section{padding:88px 0}
-.soft{background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.head{text-align:center;max-width:680px;margin:0 auto 44px}
-.eyebrow{display:inline-block;font-size:.8rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
-h2{font-size:clamp(1.8rem,3.2vw,2.5rem);line-height:1.15;letter-spacing:-.03em;font-weight:800;color:var(--ink);margin:0 0 12px;text-wrap:balance}
-.head p{margin:0;color:var(--muted);font-size:1.06rem}
-.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:28px;box-shadow:0 1px 2px rgba(11,37,64,.04),0 10px 28px -18px rgba(11,37,64,.18)}
-.icon{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:var(--grad);color:var(--on-grad);margin-bottom:18px;box-shadow:0 8px 18px -10px rgba(21,146,255,.7)}
-.icon svg{width:25px;height:25px}
-.card h3,.step h3,.dl h3{font-size:1.12rem;font-weight:800;letter-spacing:-.01em;color:var(--ink);margin:0 0 8px}
-.card p,.step p,.dl p{margin:0;color:var(--muted);font-size:.98rem}
+.actions{margin-top:30px;display:flex;justify-content:center;flex-wrap:wrap;gap:14px}
+.btn{display:inline-flex;align-items:center;gap:14px;min-height:66px;padding:12px 28px 12px 24px;border-radius:18px;text-decoration:none;text-align:left;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.btn svg{width:24px;height:24px;flex:none}
+.btn .lbl{display:flex;flex-direction:column;line-height:1.22}
+.btn strong{font-size:1.07rem;font-weight:800;letter-spacing:-.005em}
+.btn small{margin-top:3px;font-size:.8rem;font-weight:600;opacity:.78}
+.btn-primary{background:var(--grad);color:var(--on-grad);box-shadow:0 16px 32px -14px rgba(21,146,255,.7),inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 20px 38px -14px rgba(21,146,255,.85),inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-ghost{background:#fff;color:var(--ink);border:1.5px solid #cbdbea}
+.btn-ghost:hover{border-color:#8fbce0}
+.btn:focus-visible{border-radius:18px}
 
-/* Instalación */
-.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;list-style:none;padding:0;margin:0}
-.step{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:28px;box-shadow:0 1px 2px rgba(11,37,64,.04)}
-.num{width:44px;height:44px;border-radius:50%;background:var(--grad);color:var(--on-grad);font-weight:800;font-size:1.1rem;display:grid;place-items:center;margin-bottom:16px}
-.step a{color:var(--accent);font-weight:700;text-decoration:none}
-.step a:hover{text-decoration:underline}
-.os-note{margin-top:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:26px;align-items:center;background:var(--soft);border:1px solid var(--line);border-radius:var(--r);padding:22px 26px}
-.os-note h3{margin:0 0 6px;font-size:1.04rem;font-weight:800;color:var(--ink)}
-.os-note p{margin:0;color:var(--muted);font-size:.96rem}
-.code{margin:0;background:var(--ink);border-radius:12px;padding:14px 16px;overflow-x:auto;font:500 .9rem/1.75 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#d7ecff}
-.code span{color:#7fa3c6;user-select:none}
-.tip{margin:20px auto 0;max-width:760px;justify-content:center;color:var(--muted);font-size:.95rem;display:flex;gap:10px;align-items:flex-start;text-align:left}
-.tip svg{flex:none;width:20px;height:20px;color:#1287f5;margin-top:2px}
+.note{margin:22px auto 0;max-width:40em;font-size:.9rem;color:var(--muted);text-wrap:balance}
+.note b{color:#173654;font-weight:700}
 
-/* Descargas */
-.downloads{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:20px;align-items:stretch}
-.dl{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:28px;box-shadow:0 1px 2px rgba(11,37,64,.04),0 10px 28px -18px rgba(11,37,64,.18)}
-.dl-main{border:2px solid transparent;background:linear-gradient(#fff,#fff) padding-box,var(--grad) border-box;box-shadow:0 22px 44px -24px rgba(21,146,255,.55)}
-.dl .tag{display:inline-block;align-self:flex-start;margin-bottom:14px;font-size:.76rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:#e3f8ff;border-radius:999px;padding:4px 10px}
-.dl .tag.gray{color:#6a7f96;background:#eef3f7}
-.dl .size{margin:14px 0 22px;font-size:.9rem;font-weight:700;color:#173654}
-.dl .btn{width:100%;margin-top:auto}
-.note{margin:22px 0 0;text-align:center;color:var(--muted);font-size:.93rem}
+footer{padding:16px 24px 22px;text-align:center;font-size:.85rem;color:var(--muted)}
+footer a{text-decoration:underline;text-decoration-color:rgba(86,109,134,.35);text-underline-offset:3px}
+footer a:hover{color:var(--ink);text-decoration-color:currentColor}
+footer .sep{margin:0 8px;color:#9fb3c6}
+footer .by,footer .nw{white-space:nowrap}
 
-/* Franja final */
-.band{background:var(--grad)}
-.band .shell{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px 32px;padding:48px 0}
-.band h2{color:var(--on-grad);margin:0;font-size:clamp(1.5rem,2.6vw,2.1rem)}
-.band p{margin:6px 0 0;color:#073152;font-weight:600}
-
-/* Pie */
-.footer{padding:52px 0 32px;background:#fff}
-.footer-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:40px}
-.footer .brand{margin-bottom:14px}
-.footer h4{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:#7b8fa5;margin:0 0 12px;font-weight:800}
-.footer p{margin:0 0 10px;color:var(--muted);font-size:.94rem}
-.links{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px 18px}
-.links a{color:var(--accent);text-decoration:none;font-size:.94rem;font-weight:700}
-.links a:hover{text-decoration:underline}
-.footer-bottom{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;color:#7b8fa5;font-size:.86rem}
-.footer-bottom a{color:var(--muted);text-decoration:none}
-.footer-bottom a:hover{color:var(--accent)}
-
-@media (max-width:1020px){
-  .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .steps,.downloads{grid-template-columns:minmax(0,1fr)}
-  .os-note{grid-template-columns:minmax(0,1fr)}
-  .footer-grid{grid-template-columns:1fr 1fr}
-  .footer-grid > :first-child{grid-column:1 / -1}
+@media (max-height:720px) and (min-width:561px){
+  main{padding-top:40px}
+  .mark{width:88px;height:88px;border-radius:24px;margin-bottom:20px}
+  .mark img{width:62px;height:62px}
+  .actions{margin-top:26px}
 }
-@media (max-width:720px){
-  :root{--gutter:16px}
-  .header .shell{gap:12px;height:64px}
-  .nav,.header .icon-btn{display:none}
-  .header-actions{margin-left:auto}
-  .brand{font-size:1rem;gap:8px}
-  .btn-sm{padding:0 14px}
-  .hero{padding:40px 0 52px}
-  .title-row{flex-direction:column;gap:12px;margin:18px 0 10px}
-  .title-row img{width:60px;height:60px}
-  .cta-row .btn{width:100%}
-  .btn-big{justify-content:flex-start;height:auto;min-height:64px;padding:12px 20px;white-space:normal}
-  .chips{gap:8px}
-  .chips li{font-size:.86rem;padding:8px 12px}
-  .section{padding:68px 0}
-  .grid-3,.footer-grid{grid-template-columns:minmax(0,1fr)}
-  .band .shell{padding:40px 0}
-  .band .btn{width:100%}
+@media (max-width:560px){
+  main{padding:32px 16px 14px}
+  .mark{width:68px;height:68px;border-radius:20px;margin-bottom:16px}
+  .mark img{width:48px;height:48px}
+  h1{font-size:min(2.25rem,8vw);gap:4px 10px}
+  .ver{padding:4px 10px;font-size:.85rem}
+  .tagline{margin-top:10px}
+  .desc{margin-top:10px;font-size:.95rem;line-height:1.55}
+  .actions{flex-direction:column;align-items:stretch;gap:10px;margin-top:22px}
+  .btn{gap:12px;padding:11px 18px}
+  .btn strong{font-size:1rem}
+  .btn-ghost{min-height:54px}
+  .btn-ghost small{display:none}
+  .note{margin-top:16px;font-size:.86rem}
+  footer{padding:8px 16px 16px;font-size:.8rem}
+  footer .by{display:block}
+  footer .sep-by{display:none}
 }
-@media (max-width:359px){
-  .header .brand span{display:none}
+@media (max-width:380px){
+  main{padding-top:24px}
+  .btn{padding:11px 16px}
+  .btn strong{font-size:.95rem}
 }
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  .btn{transition:none}
-  .btn-primary:hover,.btn-white:hover{transform:none}
-}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 </style>
 </head>
 <body>
-<a class="skip" href="#contenido">Ir al contenido</a>
+<main>
+  <div class="hero">
+    <div class="mark"><img src="assets/icono-256.png" width="70" height="70" alt="Logo de FW-Granulometry"></div>
+    <h1><span>FW-Granulometry</span><span class="ver">2.0</span></h1>
+    <p class="tagline">Análisis granulométrico de tefras y depósitos volcaniclásticos</p>
+    <p class="desc">Software libre y gratuito que calcula parámetros granulométricos, genera gráficos y diagramas de clasificación, combina datos de tamizado y láser, y analiza componentes y dimensión fractal.</p>
 
-<header class="header">
-  <div class="shell">
-    <a class="brand" href="#top" aria-label="FW-Granulometry, inicio">
-      <img src="assets/icono-128.png" width="34" height="34" alt="">
-      <span>FW-Granulometry</span>
-    </a>
-    <nav class="nav" aria-label="Secciones">
-      <a href="#funciones">Funciones</a>
-      <a href="#instalacion">Instalación</a>
-      <a href="#descargas">Descargas</a>
-    </nav>
-    <div class="header-actions">
-      <a class="icon-btn" href="https://github.com/santiagoabelretamoso/FW-Granulometry" aria-label="Código fuente en GitHub">
+    <div class="actions">
+      <a class="btn btn-primary" href="descargas/FW-Granulometry-2.0.zip" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
+        <span class="lbl"><strong>Descargar FW-Granulometry 2.0</strong><small>ZIP · 1,2 MB · Windows, macOS y Linux</small></span>
+      </a>
+      <a class="btn btn-ghost" href="https://github.com/santiagoabelretamoso/FW-Granulometry">
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      </a>
-      <a class="btn btn-primary btn-sm" href="descargas/FW-Granulometry-2.0.zip" download>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
-        Descargar
+        <span class="lbl"><strong>Ver en GitHub</strong><small>Código fuente</small></span>
       </a>
     </div>
+
+    <p class="note">Requiere Python 3.9 o superior. En Windows, descomprimir el ZIP y ejecutar <b>Instalar FW-Granulometry.bat</b>.</p>
   </div>
-</header>
-
-<main id="contenido">
-  <section class="hero" id="top">
-    <div class="shell">
-      <span class="pill"><span class="dot"></span>Versión 2.0 · Gratis y de código abierto</span>
-      <div class="title-row">
-        <img src="assets/icono-128.png" width="72" height="72" alt="">
-        <h1>FW-Granulometry</h1>
-      </div>
-      <p class="subtitle">Análisis granulométrico de tefras y depósitos volcaniclásticos</p>
-      <p class="desc">Calcula parámetros granulométricos, genera gráficos de granulometría volcánica, unifica datos de láser y tamizado y analiza componentes, a partir de planillas de Excel.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary btn-big" href="descargas/FW-Granulometry-2.0.zip" download>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
-          <span class="lbl"><strong>Descargar FW-Granulometry 2.0</strong><small>ZIP · 1,2 MB · con instalador para Windows</small></span>
-        </a>
-        <a class="btn btn-outline btn-big" href="https://github.com/santiagoabelretamoso/FW-Granulometry">
-          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-          <span class="lbl"><strong>Ver código en GitHub</strong><small>Licencia GNU GPL v3.0</small></span>
-        </a>
-      </div>
-      <p class="req">Windows, macOS y Linux · Requiere Python 3.9 o superior</p>
-      <ul class="chips" aria-label="Funciones principales">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.5" height="6.5" rx="1"/><rect x="10.25" y="6" width="3.5" height="11.5" rx="1"/><rect x="15" y="13" width="3.5" height="4.5" rx="1"/></svg>Folk &amp; Ward, Inman, Trask y momentos</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16h16"/><circle cx="9" cy="15" r="1.4"/><circle cx="13" cy="11.5" r="1.4"/><circle cx="16.5" cy="14" r="1.4"/><path d="M7.5 9.5c3.5-3 8-3.5 12-1" stroke-dasharray="2.2 2.6"/></svg>Walker, Gençalioğlu-Kuşcu y Pardo</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h4.5c3 0 3.5 5.5 6.5 5.5H20"/><path d="M4 17.5h4.5c3 0 3.5-5.5 6.5-5.5"/><path d="M17 9l3 3-3 3"/></svg>Láser + tamizado</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3.5a8.5 8.5 0 1 0 9.5 9.5H11z"/><path d="M14.5 2.8a8.5 8.5 0 0 1 6.7 6.7h-6.7z"/></svg>Análisis de componentes</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l8.5 15h-17z"/><path d="M7.75 11.5h8.5L12 19z"/></svg>Análisis fractal</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v5"/><path d="M15 3v5"/><path d="M6.5 8h11v3.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 17v4"/></svg>Complementos</li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="section soft" id="funciones">
-    <div class="shell">
-      <div class="head">
-        <span class="eyebrow">Funciones</span>
-        <h2>Qué hace FW-Granulometry</h2>
-        <p>Todo el análisis granulométrico en un solo programa, desde la planilla hasta la figura final.</p>
-      </div>
-      <div class="grid-3">
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><rect x="5.5" y="11" width="3.5" height="6.5" rx="1"/><rect x="10.25" y="6" width="3.5" height="11.5" rx="1"/><rect x="15" y="13" width="3.5" height="4.5" rx="1"/></svg></div>
-          <h3>Parámetros granulométricos</h3>
-          <p>Media, mediana, selección, asimetría y curtosis por Folk &amp; Ward (1957), Inman (1952), Trask (1932) o momentos, para tamizado, láser o datos combinados.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16h16"/><circle cx="9" cy="15" r="1.4"/><circle cx="13" cy="11.5" r="1.4"/><circle cx="16.5" cy="14" r="1.4"/><path d="M7.5 9.5c3.5-3 8-3.5 12-1" stroke-dasharray="2.2 2.6"/></svg></div>
-          <h3>Gráficos de granulometría volcánica</h3>
-          <p>Histogramas, curvas acumuladas, gráficos XY entre parámetros y diagramas de clasificación de Walker, Gençalioğlu-Kuşcu y Pardo.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5h4.5c3 0 3.5 5.5 6.5 5.5H20"/><path d="M4 17.5h4.5c3 0 3.5-5.5 6.5-5.5"/><path d="M17 9l3 3-3 3"/></svg></div>
-          <h3>Láser y tamizado</h3>
-          <p>Unifica ambas técnicas en una distribución híbrida, con distintos métodos de combinación y un valor de corte φ* configurable.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3.5a8.5 8.5 0 1 0 9.5 9.5H11z"/><path d="M14.5 2.8a8.5 8.5 0 0 1 6.7 6.7h-6.7z"/></svg></div>
-          <h3>Análisis de componentes</h3>
-          <p>Componentry-FW registra y analiza la proporción de cada tipo de partícula en las muestras, junto con su granulometría.</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l8.5 15h-17z"/><path d="M7.75 11.5h8.5L12 19z"/></svg></div>
-          <h3>Análisis fractal</h3>
-          <p>Dimensión fractal de fragmentación a partir de la distribución granulométrica, según Perugini et al. (2011).</p>
-        </article>
-        <article class="card">
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3v5"/><path d="M15 3v5"/><path d="M6.5 8h11v3.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 17v4"/></svg></div>
-          <h3>Exportación y complementos</h3>
-          <p>Tablas en Excel y figuras en PNG, TIFF, JPEG, SVG o PDF. Se amplía con complementos, como GdeInput para PYFLOW.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="instalacion">
-    <div class="shell">
-      <div class="head">
-        <span class="eyebrow">Instalación</span>
-        <h2>Instalación en tres pasos</h2>
-        <p>En Windows, el instalador incluido se ocupa de todo. Los pasos 1 y 2 se hacen una sola vez.</p>
-      </div>
-      <ol class="steps">
-        <li class="step">
-          <div class="num">1</div>
-          <h3>Instalar Python</h3>
-          <p>Python 3.9 o superior, desde <a href="https://www.python.org/downloads/">python.org</a>. En Windows, marcar la opción «Add python.exe to PATH» durante la instalación.</p>
-        </li>
-        <li class="step">
-          <div class="num">2</div>
-          <h3>Descomprimir e instalar</h3>
-          <p>Extraer el ZIP y hacer doble clic en «Instalar FW-Granulometry.bat». Instala los paquetes necesarios y crea un acceso directo en el Escritorio.</p>
-        </li>
-        <li class="step">
-          <div class="num">3</div>
-          <h3>Abrir FW-Granulometry</h3>
-          <p>Desde el acceso directo del Escritorio o con doble clic en «Abrir FW-Granulometry.bat».</p>
-        </li>
-      </ol>
-      <div class="os-note">
-        <div>
-          <h3>En macOS y Linux</h3>
-          <p>Con Python 3.9 o superior instalado, abrir una terminal dentro de la carpeta del programa y ejecutar:</p>
-        </div>
-        <pre class="code"><span>$ </span>python3 -m pip install -r requirements.txt
-<span>$ </span>python3 "FW-Granulometry 2.0.py"</pre>
-      </div>
-      <p class="tip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.4"/></svg>Todos los archivos del programa tienen que quedar juntos en la misma carpeta. Las planillas de Excel pueden estar en cualquier lugar.</p>
-    </div>
-  </section>
-
-  <section class="section soft" id="descargas">
-    <div class="shell">
-      <div class="head">
-        <span class="eyebrow">Descargas</span>
-        <h2>Descargas</h2>
-        <p>Gratis, sin registro y de código abierto.</p>
-      </div>
-      <div class="downloads">
-        <div class="dl dl-main">
-          <span class="tag">Programa</span>
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v10.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/><path d="M3 4.5h18V8H3z"/><path d="M10 12h4"/></svg></div>
-          <h3>FW-Granulometry 2.0</h3>
-          <p>Programa completo, con instalador para Windows e instrucciones.</p>
-          <p class="size">ZIP · 1,2 MB</p>
-          <a class="btn btn-primary" href="descargas/FW-Granulometry-2.0.zip" download>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
-            Descargar
-          </a>
-        </div>
-        <div class="dl">
-          <span class="tag gray">Documentación</span>
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4h9a4 4 0 0 1 4 4v12h-9a4 4 0 0 1-4-4z"/><path d="M9.5 9h5"/><path d="M9.5 13h5"/></svg></div>
-          <h3>Manual de uso</h3>
-          <p>Guía completa del programa, en español.</p>
-          <p class="size">En preparación</p>
-          <span class="btn btn-off" aria-disabled="true">Próximamente</span>
-        </div>
-        <div class="dl">
-          <span class="tag gray">Código</span>
-          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 8l-4 4 4 4"/><path d="M15 8l4 4-4 4"/></svg></div>
-          <h3>Código fuente</h3>
-          <p>Repositorio con todos los archivos del programa.</p>
-          <p class="size">GitHub · GNU GPL v3.0</p>
-          <a class="btn btn-outline" href="https://github.com/santiagoabelretamoso/FW-Granulometry">Ver en GitHub</a>
-        </div>
-      </div>
-      <p class="note">Requisitos: Windows 10 u 11, macOS o Linux, con Python 3.9 o superior. GdeInput (complemento para PYFLOW) requiere además Windows con WSL.</p>
-    </div>
-  </section>
-
-  <section class="band" aria-label="Descarga">
-    <div class="shell">
-      <div>
-        <h2>FW-Granulometry 2.0, gratis y de código abierto</h2>
-        <p>Para Windows, macOS y Linux.</p>
-      </div>
-      <a class="btn btn-white btn-big" href="descargas/FW-Granulometry-2.0.zip" download>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
-        <span class="lbl"><strong>Descargar ahora</strong><small>ZIP · 1,2 MB</small></span>
-      </a>
-    </div>
-  </section>
 </main>
 
-<footer class="footer">
-  <div class="shell">
-    <div class="footer-grid">
-      <div>
-        <a class="brand" href="#top"><img src="assets/icono-128.png" width="34" height="34" alt=""><span>FW-Granulometry</span></a>
-        <p>Folk &amp; Ward Granulometry. Software libre y de código abierto para el análisis granulométrico de tefras y otros depósitos volcaniclásticos.</p>
-      </div>
-      <div>
-        <h4>Autor</h4>
-        <p>Santiago Abel Retamoso</p>
-        <ul class="links">
-          <li><a href="mailto:santiagoabelretamoso@gmail.com">Contacto</a></li>
-          <li><a href="https://orcid.org/0009-0003-7811-1704">ORCID</a></li>
-          <li><a href="https://www.researchgate.net/profile/Santiago-Retamoso">ResearchGate</a></li>
-          <li><a href="https://scholar.google.com/scholar?q=%22Santiago+Abel+Retamoso%22">Google Scholar</a></li>
-          <li><a href="https://www.linkedin.com/in/santiago-abel-retamoso-0348021a8/">LinkedIn</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Historia</h4>
-        <p>La versión 1.0 se presentó en la XIX Reunión Argentina de Sedimentología (Córdoba, 2025).</p>
-        <ul class="links">
-          <li><a href="https://bicyt.conicet.gov.ar/fichas/produccion/en/12653491">Ver resumen</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>FW-Granulometry 2.0 · Licencia <a href="https://github.com/santiagoabelretamoso/FW-Granulometry/blob/main/LICENSE">GNU GPL v3.0</a></span>
-      <a href="#top">Volver arriba</a>
-    </div>
-  </div>
+<footer>
+  <span class="by">Desarrollado por Santiago Abel Retamoso</span><span class="sep sep-by">·</span><span class="nw">Licencia <a href="https://github.com/santiagoabelretamoso/FW-Granulometry/blob/main/LICENSE">GNU GPL v3.0</a></span>
 </footer>
 </body>
 </html>
