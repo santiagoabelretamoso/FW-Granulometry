@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FW-Granulometry 2.0 · Análisis granulométrico de tefras</title>
+<title data-i18n="title">FW-Granulometry 2.0 · Análisis granulométrico de tefras</title>
 <meta name="description" content="FW-Granulometry 2.0 es un software libre y gratuito para el análisis granulométrico de tefras y depósitos volcaniclásticos.">
 <meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="https://santiagoabelretamoso.github.io/FW-Granulometry/">
@@ -92,6 +92,11 @@ footer .by{color:#173654}
 footer .by strong{font-weight:800;color:var(--ink)}
 footer .sep{margin:0 8px;color:#9fb3c6}
 footer .nw{white-space:nowrap}
+.lang{position:absolute;top:16px;right:18px;z-index:5;display:flex;padding:3px;border-radius:999px;background:rgba(255,255,255,.85);border:1px solid var(--line);box-shadow:0 1px 2px rgba(11,37,64,.05)}
+.lang button{font:inherit;font-size:.78rem;font-weight:800;letter-spacing:.04em;border:0;background:none;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--grad);color:var(--on-grad)}
+.lang button:focus-visible{outline:3px solid #1592ff;outline-offset:2px}
+@media (max-width:560px){.lang{top:12px;right:12px}.lang button{padding:4px 9px;font-size:.72rem}}
 
 @media (max-height:760px) and (min-width:561px){
   main{padding:26px 24px 10px}
@@ -132,21 +137,22 @@ footer .nw{white-space:nowrap}
 </style>
 </head>
 <body>
+<div class="lang" role="group" aria-label="Idioma / Language"><button type="button" data-lang="es">ES</button><button type="button" data-lang="en">ENG</button></div>
 <main>
   <div class="hero">
-    <div class="mark"><img src="assets/icono-256.png" width="70" height="70" alt="Logo de FW-Granulometry"></div>
+    <div class="mark"><img src="assets/icono-256.png" width="70" height="70" alt="FW-Granulometry"></div>
     <h1><span>FW-Granulometry</span><span class="ver">2.0</span></h1>
-    <p class="tagline">Análisis granulométrico de tefras y depósitos volcaniclásticos</p>
-    <p class="desc">Software libre y gratuito que, a partir de datos de tamizado y láser, calcula parámetros granulométricos, visualiza y clasifica muestras, y estudia sus componentes y su dimensión fractal.</p>
+    <p class="tagline" data-i18n="tagline">Análisis granulométrico de tefras y depósitos volcaniclásticos</p>
+    <p class="desc" data-i18n="desc">Software libre y gratuito que, a partir de datos de tamizado y láser, calcula parámetros granulométricos, visualiza y clasifica muestras, y estudia sus componentes y su dimensión fractal.</p>
 
     <div class="actions">
       <a class="btn btn-primary" href="descargas/FW-Granulometry-2.0.zip" download data-descarga>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg>
-        <span class="lbl"><strong>Descargar FW-Granulometry 2.0</strong><small>ZIP · 1,2 MB · Windows, macOS y Linux</small></span>
+        <span class="lbl"><strong data-i18n="dl">Descargar FW-Granulometry 2.0</strong><small data-i18n="dlsub">ZIP · 1,2 MB · Windows, macOS y Linux</small></span>
       </a>
       <a class="btn btn-ghost" href="https://github.com/santiagoabelretamoso/FW-Granulometry">
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        <span class="lbl"><strong>Ver en GitHub</strong><small>Código fuente · Licencia GPL v3.0</small></span>
+        <span class="lbl"><strong data-i18n="gh">Ver en GitHub</strong><small data-i18n="ghsub">Código fuente · Licencia GPL v3.0</small></span>
       </a>
     </div>
 
@@ -161,13 +167,13 @@ footer .nw{white-space:nowrap}
       </span>
     </div>
 
-    <p class="note">Requiere Python 3.9 o superior.<span class="win"> En Windows, descomprimir el ZIP y ejecutar <b>Instalar FW-Granulometry.bat</b>.</span></p>
+    <p class="note" data-i18n="note">Requiere Python 3.9 o superior.<span class="win"> En Windows, descomprimir el ZIP y ejecutar <b>Instalar FW-Granulometry.bat</b>.</span></p>
   </div>
 </main>
 
 <footer>
-  <p class="by">by <strong>Santiago Abel Retamoso</strong><span class="sep">·</span>Becario CONICET</p>
-  <p>Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span></p>
+  <p class="by">by <strong>Santiago Abel Retamoso</strong><span class="sep">·</span><span data-i18n="fellow">Becario CONICET</span></p>
+  <p data-i18n="lab">Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span></p>
   <p>Universidad Nacional de Salta</p>
 </footer>
 
@@ -175,15 +181,64 @@ footer .nw{white-space:nowrap}
 (function () {
   var API = "https://abacus.jasoncameron.dev";
   var NS = "fw-granulometry-web";
-  var fmt = new Intl.NumberFormat("es-AR");
 
-  function mostrar(id, n, uno, varios) {
+  var T = {
+    es: {
+      title: "FW-Granulometry 2.0 · Análisis granulométrico de tefras",
+      tagline: "Análisis granulométrico de tefras y depósitos volcaniclásticos",
+      desc: "Software libre y gratuito que, a partir de datos de tamizado y láser, calcula parámetros granulométricos, visualiza y clasifica muestras, y estudia sus componentes y su dimensión fractal.",
+      dl: "Descargar FW-Granulometry 2.0",
+      dlsub: "ZIP · 1,2 MB · Windows, macOS y Linux",
+      gh: "Ver en GitHub",
+      ghsub: "Código fuente · Licencia GPL v3.0",
+      note: 'Requiere Python 3.9 o superior.<span class="win"> En Windows, descomprimir el ZIP y ejecutar <b>Instalar FW-Granulometry.bat</b>.</span>',
+      fellow: "Becario CONICET",
+      lab: 'Laboratorio de Análisis por Activación Neutrónica, <span class="nw">Centro Atómico Bariloche</span>',
+      visit: ["visita", "visitas"], dlc: ["descarga", "descargas"], loc: "es-AR"
+    },
+    en: {
+      title: "FW-Granulometry 2.0 · Grain-size analysis of tephra",
+      tagline: "Grain-size analysis of tephra and volcaniclastic deposits",
+      desc: "Free and open-source software that turns sieve and laser data into grain-size parameters, plots and classifies samples, and analyzes their componentry and fractal dimension.",
+      dl: "Download FW-Granulometry 2.0",
+      dlsub: "ZIP · 1.2 MB · Windows, macOS and Linux",
+      gh: "View on GitHub",
+      ghsub: "Source code · GPL v3.0 license",
+      note: 'Requires Python 3.9 or later.<span class="win"> On Windows, unzip the file and run <b>Instalar FW-Granulometry.bat</b>.</span>',
+      fellow: "CONICET Fellow",
+      lab: 'Neutron Activation Analysis Laboratory, <span class="nw">Centro Atómico Bariloche</span>',
+      visit: ["visit", "visits"], dlc: ["download", "downloads"], loc: "en-US"
+    }
+  };
+  var lang = "es";
+  try { var g = localStorage.getItem("fw-lang"); if (g === "es" || g === "en") lang = g; else if (!/^es/i.test(navigator.language || "es")) lang = "en"; } catch (e) {}
+  var vals = {};
+
+  function mostrar(id, n, k) {
     var el = document.getElementById(id);
     if (!el || typeof n !== "number" || !isFinite(n)) return;
-    el.querySelector("b").textContent = fmt.format(n);
-    el.querySelector(".t").textContent = n === 1 ? uno : varios;
+    vals[id] = [n, k];
+    el.querySelector("b").textContent = new Intl.NumberFormat(T[lang].loc).format(n);
+    el.querySelector(".t").textContent = T[lang][k][n === 1 ? 0 : 1];
     el.hidden = false;
   }
+
+  function idioma(l, guardar) {
+    lang = l;
+    document.documentElement.lang = l;
+    var els = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < els.length; i++) {
+      var k = els[i].getAttribute("data-i18n");
+      if (k === "title") document.title = T[l].title; else els[i].innerHTML = T[l][k];
+    }
+    var bs = document.querySelectorAll(".lang button");
+    for (var j = 0; j < bs.length; j++) bs[j].setAttribute("aria-pressed", bs[j].getAttribute("data-lang") === l ? "true" : "false");
+    for (var id in vals) mostrar(id, vals[id][0], vals[id][1]);
+    if (guardar) { try { localStorage.setItem("fw-lang", l); } catch (e) {} }
+  }
+  var lb = document.querySelectorAll(".lang button");
+  for (var b = 0; b < lb.length; b++) lb[b].addEventListener("click", function () { idioma(this.getAttribute("data-lang"), true); });
+  idioma(lang);
 
   function contador(accion, clave, extra) {
     return fetch(API + "/" + accion + "/" + NS + "/" + clave, Object.assign({ cache: "no-store" }, extra || {}))
@@ -197,19 +252,19 @@ footer .nw{white-space:nowrap}
   var visto = false;
   try { visto = sessionStorage.getItem("fw-visita") === "1"; } catch (e) {}
   contador(visto ? "get" : "hit", "visitas").then(function (d) {
-    mostrar("st-visitas", d.value, "visita", "visitas");
+    mostrar("st-visitas", d.value, "visit");
     try { sessionStorage.setItem("fw-visita", "1"); } catch (e) {}
   }).catch(function () {});
 
   contador("get", "descargas").then(function (d) {
-    mostrar("st-descargas", d.value, "descarga", "descargas");
+    mostrar("st-descargas", d.value, "dlc");
   }).catch(function () {});
 
   var enlaces = document.querySelectorAll("a[data-descarga]");
   for (var i = 0; i < enlaces.length; i++) {
     enlaces[i].addEventListener("click", function () {
       contador("hit", "descargas", { keepalive: true }).then(function (d) {
-        mostrar("st-descargas", d.value, "descarga", "descargas");
+        mostrar("st-descargas", d.value, "dlc");
       }).catch(function () {});
     });
   }
