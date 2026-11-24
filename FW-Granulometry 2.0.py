@@ -131,7 +131,8 @@ def legend_group_base(lang: str = None) -> str:
 I18N = {
     # App / Tabs
     "app_title": "FW-Granulometry 2.0",
-    "tab_xy": "XY Plot",
+    "tab_xy": "Granulometric parameters",
+    "xy_plot_title": "Granulometric parameters plot",
     "tab_hist": "Histogram",
 
     # Menus
@@ -174,10 +175,16 @@ I18N = {
     "btn_plot_xy": "Plot XY",
     "btn_choose_db": "Choose databases to plot",
     "chk_show_names": "Show names",
-    "btn_filter_groups": "Filter groups",
+    "btn_filter_groups": "Groups",
+    "btn_view_plot": "View plot",
     "btn_export_image": "Export image",
     "console_header": "Granulometric parameters",
     "btn_export_params": "Export granulometric parameters",
+    "params_copy_table": "Copy table",
+    "params_copied": "Copied",
+    "params_filter_placeholder": "Filter by sample or group",
+    "params_empty_title": "No granulometric parameters yet",
+    "params_empty_text": "Load a sieve or laser Excel file to compute them. Each dataset (Sieve, Laser, Hybrid) gets its own table here.",
 
     # Histogram tab controls
     "hist_db": "Database:",
@@ -435,6 +442,13 @@ GROUP_COLORS = [
     "#e76f51",
     "#ffd60a",
     "#adb5bd",
+    "#9b5de5",
+    "#c1121f",
+    "#1d3557",
+    "#f15bb5",
+    "#8d6e63",
+    "#00b4d8",
+    "#ff9f1c",
 ]
 
 # If your project uses BASE_KEYS (defined in Block 0), keep these aliases:
@@ -1727,6 +1741,2594 @@ class ComponentryDB:
 
 
 
+# region # === Block 6B: Granulometric parameters panel (modern table view) ===
+"""
+Modern, theme-aware "Granulometric parameters" panel shown in the XY tab.
+
+What it shows:
+  - One table per dataset (Sieve / Laser / Hybrid), chosen with the selector
+    above the table. Only the datasets that are loaded are listed.
+  - Real column headers with the parameter symbols (same labels as the XY axes).
+  - Right-aligned numbers with a fixed number of decimals; an em dash when a
+    value could not be computed.
+  - The Group column shows the same color used for that group in the plots.
+  - Rows start sorted by sample name in natural order (R2 < R10). Click a column
+    header to sort by it; right click > "Clear sorting" shows the data order.
+  - Type in the filter box to show only matching samples or groups.
+  - "Copy table" / Ctrl+C copies the rows as tab-separated text, ready to paste
+    into Excel (numbers use the decimal separator of the operating system).
+
+Compatibility:
+  - MainWindow.update_console() fills this panel (Block 10).
+  - MainWindow.txt_console points to this panel and still accepts
+    setPlainText / toPlainText / append / clear, so older code and plugins
+    written for the former plain-text console keep working.
+  - Exporting to Excel is unchanged: it reads the parameter DataFrames directly.
+"""
+import re as _fw_pp_re
+from string import Template as _FwPPTemplate
+
+from PyQt5.QtCore import Qt, QEvent, QSize, QRectF, QTimer, QLocale, QSortFilterProxyModel
+from PyQt5.QtGui import (
+    QColor, QFont, QFontInfo, QFontMetrics, QIcon, QPainter, QPixmap, QPen, QBrush, QKeySequence,
+    QStandardItemModel, QStandardItem
+)
+from PyQt5.QtWidgets import (
+    QApplication, QFrame, QWidget, QLabel, QPushButton, QLineEdit, QButtonGroup,
+    QVBoxLayout, QHBoxLayout, QStackedWidget, QTableView, QHeaderView,
+    QAbstractItemView, QStyledItemDelegate, QSizePolicy, QAction
+)
+
+_FW_PP_PARAM_KEYS = ("mean", "median", "sigma", "skewness", "kurtosis")
+_FW_PP_ROLE_SORT = Qt.UserRole + 41
+_FW_PP_ROLE_RAW = Qt.UserRole + 42
+_FW_PP_DECIMALS = 3
+
+_FW_PP_PARAM_HINTS = {
+    "mean": "Mean grain size",
+    "median": "Median grain size (φ50)",
+    "sigma": "Sorting: spread of the distribution",
+    "skewness": "Skewness: asymmetry of the distribution",
+    "kurtosis": "Kurtosis: peakedness of the distribution",
+}
+
+_FW_PP_DATASET_HINTS = {
+    "Tamiz": "Parameters computed from the sieve data",
+    "Laser": "Parameters computed from the laser data",
+    "Híbrido": "Parameters computed from the combined sieve + laser data",
+}
+
+# Colors of the panel for each UI theme (Settings > UI theme).
+_FW_PP_PALETTES = {
+    "light": {
+        "card": "#ffffff", "border": "#dde3ea", "title": "#0f172a", "text": "#1e293b",
+        "muted": "#64748b",
+        "badge_bg": "#eef4ff", "badge_fg": "#1d4ed8", "badge_border": "#c9dafc",
+        "seg_bg": "#f1f5f9", "seg_border": "#e2e8f0",
+        "chip_fg": "#475569", "chip_hover": "#e2e8f0",
+        "chip_on_bg": "#ffffff", "chip_on_fg": "#0f172a", "chip_on_border": "#cbd5e1",
+        "input_bg": "#ffffff", "input_border": "#cfd7e3", "placeholder": "#94a3b8",
+        "accent": "#2563eb", "accent_hover": "#1d4ed8", "accent_pressed": "#1e40af",
+        "btn_bg": "#ffffff", "btn_fg": "#0f172a", "btn_border": "#cfd7e3",
+        "btn_hover": "#f8fafc", "btn_pressed": "#eef2f7",
+        "disabled_bg": "#f2f4f7", "disabled_fg": "#9aa4b2", "disabled_border": "#e2e8f0",
+        "table_bg": "#ffffff", "table_alt": "#f8fafc", "row_line": "#edf1f5",
+        "head_bg": "#f1f5f9", "head_fg": "#334155", "head_line": "#dde3ea",
+        "sel_bg": "#dbeafe", "sel_fg": "#0f172a", "sel_inactive": "#e7effd",
+        "scroll": "#cbd5e1", "scroll_hover": "#94a3b8",
+        "na": "#a0aab8",
+    },
+    "dark": {
+        "card": "#2b2e31", "border": "#3d4246", "title": "#f3f4f6", "text": "#e5e7eb",
+        "muted": "#9aa3ad",
+        "badge_bg": "#1f3550", "badge_fg": "#cfe1ff", "badge_border": "#2f4f78",
+        "seg_bg": "#232629", "seg_border": "#3d4246",
+        "chip_fg": "#c3c8ce", "chip_hover": "#34383c",
+        "chip_on_bg": "#43484d", "chip_on_fg": "#ffffff", "chip_on_border": "#575d63",
+        "input_bg": "#232629", "input_border": "#4a4f54", "placeholder": "#7d848c",
+        "accent": "#3b82f6", "accent_hover": "#2f6fdb", "accent_pressed": "#2a5fbd",
+        "btn_bg": "#393e41", "btn_fg": "#edeef0", "btn_border": "#4a4f54",
+        "btn_hover": "#45494d", "btn_pressed": "#515457",
+        "disabled_bg": "#2f3236", "disabled_fg": "#6b7178", "disabled_border": "#3a3e42",
+        "table_bg": "#2b2e31", "table_alt": "#303438", "row_line": "#363a3e",
+        "head_bg": "#33373b", "head_fg": "#d6dade", "head_line": "#43484d",
+        "sel_bg": "#35537a", "sel_fg": "#ffffff", "sel_inactive": "#2f4560",
+        "scroll": "#4a4f54", "scroll_hover": "#5d6369",
+        "na": "#6b7178",
+    },
+}
+
+_FW_PP_QSS = _FwPPTemplate(
+    "QFrame#fwParamsCard { background-color: $card; border: 1px solid $border; border-radius: 10px; }\n"
+    "QLabel { background: transparent; border: none; }\n"
+    "QWidget#fwParamsToolbar, QStackedWidget#fwParamsStack, QWidget#fwParamsEmptyPage { background: transparent; border: none; }\n"
+    "QLabel#fwParamsTitle { color: $title; font-size: $title_pt; font-weight: 600; }\n"
+    "QLabel#fwParamsBadge { color: $badge_fg; background-color: $badge_bg; border: 1px solid $badge_border; border-radius: 6px; padding: 2px 8px; font-size: $badge_pt; font-weight: 600; }\n"
+    "QLabel#fwParamsSummary { color: $muted; }\n"
+    "QLabel#fwParamsEmptyTitle { color: $title; font-size: $empty_pt; font-weight: 600; }\n"
+    "QLabel#fwParamsEmptyText { color: $muted; }\n"
+    "QFrame#fwParamsSeg { background-color: $seg_bg; border: 1px solid $seg_border; border-radius: 8px; }\n"
+    "QPushButton#fwParamsChip { background-color: transparent; color: $chip_fg; border: 1px solid transparent; border-radius: 6px; padding: 4px 16px; min-height: 18px; min-width: 0px; }\n"
+    "QPushButton#fwParamsChip:hover { background-color: $chip_hover; }\n"
+    "QPushButton#fwParamsChip:checked { background-color: $chip_on_bg; color: $chip_on_fg; border: 1px solid $chip_on_border; font-weight: 600; }\n"
+    "QLineEdit#fwParamsFilter { background-color: $input_bg; color: $text; border: 1px solid $input_border; border-radius: 8px; padding: 4px 8px; min-height: 20px; selection-background-color: $sel_bg; selection-color: $sel_fg; }\n"
+    "QLineEdit#fwParamsFilter:focus { border: 1px solid $accent; }\n"
+    "QPushButton#fwParamsSecondary { background-color: $btn_bg; color: $btn_fg; border: 1px solid $btn_border; border-radius: 8px; padding: 5px 14px; min-height: 20px; }\n"
+    "QPushButton#fwParamsSecondary:hover { background-color: $btn_hover; }\n"
+    "QPushButton#fwParamsSecondary:pressed { background-color: $btn_pressed; }\n"
+    "QPushButton#fwParamsPrimary { background-color: $accent; color: #ffffff; border: 1px solid $accent; border-radius: 8px; padding: 5px 16px; min-height: 20px; font-weight: 600; }\n"
+    "QPushButton#fwParamsPrimary:hover { background-color: $accent_hover; border-color: $accent_hover; }\n"
+    "QPushButton#fwParamsPrimary:pressed { background-color: $accent_pressed; border-color: $accent_pressed; }\n"
+    "QPushButton#fwParamsPrimary:disabled, QPushButton#fwParamsSecondary:disabled { background-color: $disabled_bg; color: $disabled_fg; border: 1px solid $disabled_border; }\n"
+    "QTableView#fwParamsTable { background-color: $table_bg; alternate-background-color: $table_alt; color: $text; border: 1px solid $border; border-radius: 8px; padding: 0px; gridline-color: $row_line; selection-background-color: $sel_bg; selection-color: $sel_fg; outline: 0; }\n"
+    "QTableView#fwParamsTable::item { padding: 0px 12px; border: none; border-bottom: 1px solid $row_line; }\n"
+    "QTableView#fwParamsTable::item:selected { background-color: $sel_bg; color: $sel_fg; }\n"
+    "QTableView#fwParamsTable::item:selected:!active { background-color: $sel_inactive; color: $sel_fg; }\n"
+    "QTableView#fwParamsTable QHeaderView { background-color: $head_bg; border: none; border-top-left-radius: 8px; border-top-right-radius: 8px; }\n"
+    "QTableView#fwParamsTable QHeaderView::section { background-color: $head_bg; color: $head_fg; border: none; border-bottom: 1px solid $head_line; padding: 6px 15px; font-weight: 600; }\n"
+    "QTableView#fwParamsTable QTableCornerButton::section { background-color: $head_bg; border: none; }\n"
+    "QTableView#fwParamsTable QScrollBar:vertical { background: transparent; width: 10px; margin: 2px 1px 2px 1px; border: none; }\n"
+    "QTableView#fwParamsTable QScrollBar::handle:vertical { background: $scroll; border-radius: 4px; min-height: 28px; }\n"
+    "QTableView#fwParamsTable QScrollBar::handle:vertical:hover { background: $scroll_hover; }\n"
+    "QTableView#fwParamsTable QScrollBar:horizontal { background: transparent; height: 10px; margin: 1px 2px 1px 2px; border: none; }\n"
+    "QTableView#fwParamsTable QScrollBar::handle:horizontal { background: $scroll; border-radius: 4px; min-width: 28px; }\n"
+    "QTableView#fwParamsTable QScrollBar::handle:horizontal:hover { background: $scroll_hover; }\n"
+    "QTableView#fwParamsTable QScrollBar::add-line, QTableView#fwParamsTable QScrollBar::sub-line { width: 0px; height: 0px; border: none; background: none; }\n"
+    "QTableView#fwParamsTable QScrollBar::add-page, QTableView#fwParamsTable QScrollBar::sub-page { background: none; }\n"
+)
+
+
+def _fw_method_display_name(code) -> str:
+    """'folkward' -> 'Folk & Ward (1957)' (uses METHODS from Block 2)."""
+    c = str(code or "").strip().lower()
+    try:
+        for label, key in METHODS.items():
+            if str(key).strip().lower() == c:
+                return str(label)
+    except Exception:
+        pass
+    fallback = {
+        "folkward": "Folk & Ward (1957)",
+        "blatt": "Folk & Ward (1957)",
+        "inman": "Inman (1952)",
+        "trask": "Trask (1932)",
+    }
+    return fallback.get(c, str(code or ""))
+
+
+def _fw_pp_is_missing(v) -> bool:
+    if v is None:
+        return True
+    try:
+        return bool(pd.isna(v))
+    except Exception:
+        return False
+
+
+def _fw_pp_float(v):
+    """float(v) or None when it is missing / not finite / not numeric."""
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        f = float(v)
+    except Exception:
+        return None
+    if f != f or f in (float("inf"), float("-inf")):
+        return None
+    return f
+
+
+def _fw_pp_fmt(f, decimals=_FW_PP_DECIMALS, point=".", minus="\u2212"):
+    """Fixed decimals, no '-0.000', typographic minus for display."""
+    if f is None:
+        return None
+    if abs(f) < 0.5 * (10 ** (-decimals)):
+        f = 0.0
+    s = "{:.{d}f}".format(f, d=decimals)
+    if s.startswith("-"):
+        s = minus + s[1:]
+    if point != ".":
+        s = s.replace(".", point)
+    return s
+
+
+def _fw_pp_column_list(df, col):
+    """Column values as a Python list, keeping each column's own type (ints stay ints)."""
+    try:
+        s = df[col]
+        if isinstance(s, pd.DataFrame):      # duplicated column name: first one
+            s = s.iloc[:, 0]
+        return s.tolist()
+    except Exception:
+        return [None] * len(df)
+
+
+def _fw_pp_color_name(color) -> str:
+    """Any color accepted by the plots (hex, name, 'tab:blue', RGB tuple) -> '#rrggbb'."""
+    try:
+        from matplotlib.colors import to_hex
+        return to_hex(color, keep_alpha=False)
+    except Exception:
+        s = str(color or "")
+        return s if QColor.isValidColor(s) else "#94a3b8"
+
+
+def _fw_pp_natural_key(text):
+    """Natural sort key: 'R2' < 'R10'. Type-safe (str at even, int at odd positions)."""
+    s = "" if text is None else str(text).strip().lower()
+    out = []
+    for i, part in enumerate(_fw_pp_re.split(r"(\d+)", s)):
+        if i % 2:
+            try:
+                out.append(int(part))
+            except Exception:
+                out.append(0)
+        else:
+            out.append(part)
+    return out
+
+
+class _FwParamsProxy(QSortFilterProxyModel):
+    """Filter by sample/group text and sort numbers numerically, names naturally."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._needle = ""
+
+    def set_needle(self, text):
+        self._needle = str(text or "").strip().lower()
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        if not self._needle:
+            return True
+        m = self.sourceModel()
+        if m is None:
+            return True
+        for col in (0, 1):
+            try:
+                val = m.data(m.index(source_row, col, source_parent), Qt.DisplayRole)
+            except Exception:
+                val = None
+            if val is not None and self._needle in str(val).lower():
+                return True
+        return False
+
+    def lessThan(self, left, right):
+        try:
+            m = self.sourceModel()
+            a = m.data(left, _FW_PP_ROLE_SORT)
+            b = m.data(right, _FW_PP_ROLE_SORT)
+            a_num = isinstance(a, (int, float)) and not isinstance(a, bool)
+            b_num = isinstance(b, (int, float)) and not isinstance(b, bool)
+            if a_num or b_num:
+                fa = float(a) if a_num else float("inf")   # missing values go last
+                fb = float(b) if b_num else float("inf")
+                if fa != fb:
+                    return fa < fb
+            else:
+                ka = _fw_pp_natural_key(m.data(left, Qt.DisplayRole))
+                kb = _fw_pp_natural_key(m.data(right, Qt.DisplayRole))
+                if ka != kb:
+                    return ka < kb
+            # tie: order by sample name, then by original position
+            sa = _fw_pp_natural_key(m.data(m.index(left.row(), 0), Qt.DisplayRole))
+            sb = _fw_pp_natural_key(m.data(m.index(right.row(), 0), Qt.DisplayRole))
+            if sa != sb:
+                return sa < sb
+            return left.row() < right.row()
+        except Exception:
+            return left.row() < right.row()
+
+
+class _FwParamsTableView(QTableView):
+    """Table that keeps its own item delegate and copies whole rows with Ctrl+C."""
+
+    def __init__(self, on_copy=None, parent=None):
+        super().__init__(parent)
+        self._on_copy = on_copy
+        self._own_delegate = QStyledItemDelegate(self)
+        self.setItemDelegate(self._own_delegate)
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        # The global table formatter of Block 5 (when active) swaps delegates on Show.
+        # This table already formats its numbers, so it keeps its own delegate.
+        try:
+            self.setItemDelegate(self._own_delegate)
+        except Exception:
+            pass
+
+    def keyPressEvent(self, e):
+        try:
+            if e.matches(QKeySequence.Copy) and callable(self._on_copy):
+                self._on_copy()
+                e.accept()
+                return
+        except Exception:
+            pass
+        super().keyPressEvent(e)
+
+
+class GranuloParamsPanel(QFrame):
+    """
+    "Granulometric parameters" card of the XY tab.
+
+    Used by MainWindow:
+        set_datasets(datasets, method_label, group_colors, legacy_text)
+            datasets = [(base_key, DataFrame, group_column), ...]
+        sync_theme()
+    Kept for older code / plugins (former QTextEdit console):
+        setPlainText, toPlainText, append, clear, setReadOnly, isReadOnly
+    """
+
+    _BASE_ORDER = ("Tamiz", "Laser", "Híbrido")
+    # Below this height the selector and the filter move up next to the title (one header row),
+    # so the table keeps some room on short screens; above _EXPAND_AT the two-row header returns.
+    _COMPACT_BELOW = 200
+    _EXPAND_AT = 250
+
+    def __init__(self, owner=None, parent=None):
+        super().__init__(parent)
+        self._owner = owner
+        self._pal = dict(_FW_PP_PALETTES["light"])
+        self._applied_theme = None
+        self._theme_pending = False
+        self._datasets = {}
+        self._order = []
+        self._current = None
+        self._known = set()
+        self._method_label = ""
+        self._group_colors = {}
+        self._group_markers = {}
+        self._group_of = None
+        self._legacy_text = ""
+        self._dot_cache = {}
+        self._n_groups = 0
+        self._flash_token = 0
+        self._copy_token = 0
+        self._compact = False
+        self._compact_pending = False
+        self._empty_title = tr("params_empty_title")
+        self._empty_text = tr("params_empty_text")
+
+        self.setObjectName("fwParamsCard")
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 12, 14, 12)
+        root.setSpacing(10)
+
+        # ---- Row 1: title + method badge | actions
+        row1 = QHBoxLayout()
+        row1.setContentsMargins(0, 0, 0, 0)
+        row1.setSpacing(10)
+
+        self.lbl_title = QLabel(tr("console_header"))
+        self.lbl_title.setObjectName("fwParamsTitle")
+        row1.addWidget(self.lbl_title, 0, Qt.AlignVCenter)
+
+        self.lbl_method = QLabel("")
+        self.lbl_method.setObjectName("fwParamsBadge")
+        self.lbl_method.setToolTip("Computation method in use (Settings > Computation method)")
+        self.lbl_method.setVisible(False)
+        row1.addWidget(self.lbl_method, 0, Qt.AlignVCenter)
+
+        row1.addStretch(1)
+
+        self.btn_copy = QPushButton(tr("params_copy_table"))
+        self.btn_copy.setObjectName("fwParamsSecondary")
+        self.btn_copy.setCursor(Qt.PointingHandCursor)
+        self.btn_copy.setToolTip("Copy the rows shown below to the clipboard, ready to paste into Excel")
+        self.btn_copy.setEnabled(False)
+        self.btn_copy.clicked.connect(lambda *_: self.copy_visible_rows())
+        row1.addWidget(self.btn_copy, 0, Qt.AlignVCenter)
+
+        # Connected to MainWindow.export_params_to_excel in initUI_tabs (Block 7)
+        self.btn_export = QPushButton(tr("btn_export_params"))
+        self.btn_export.setObjectName("fwParamsPrimary")
+        self.btn_export.setCursor(Qt.PointingHandCursor)
+        self.btn_export.setToolTip("Save every parameter table (and the data) to an Excel workbook")
+        row1.addWidget(self.btn_export, 0, Qt.AlignVCenter)
+
+        root.addLayout(row1)
+        self._row1 = row1
+
+        # ---- Row 2: dataset selector | summary + filter
+        self.row2 = QWidget()
+        self.row2.setObjectName("fwParamsToolbar")
+        row2 = QHBoxLayout(self.row2)
+        row2.setContentsMargins(0, 0, 0, 0)
+        row2.setSpacing(12)
+
+        self.seg = QFrame()
+        self.seg.setObjectName("fwParamsSeg")
+        seg_lay = QHBoxLayout(self.seg)
+        seg_lay.setContentsMargins(3, 3, 3, 3)
+        seg_lay.setSpacing(2)
+        self._chip_group = QButtonGroup(self)
+        self._chip_group.setExclusive(True)
+        self._chips = {}
+        for bk in self._BASE_ORDER:
+            b = QPushButton(base_name_display(bk))
+            b.setObjectName("fwParamsChip")
+            b.setCheckable(True)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setToolTip(_FW_PP_DATASET_HINTS.get(bk, ""))
+            b.setVisible(False)
+            b.clicked.connect(lambda _checked=False, k=bk: self._select_dataset(k))
+            self._chip_group.addButton(b)
+            seg_lay.addWidget(b)
+            self._chips[bk] = b
+        row2.addWidget(self.seg, 0, Qt.AlignVCenter)
+
+        row2.addStretch(1)
+
+        self.lbl_summary = QLabel("")
+        self.lbl_summary.setObjectName("fwParamsSummary")
+        row2.addWidget(self.lbl_summary, 0, Qt.AlignVCenter)
+
+        self.txt_filter = QLineEdit()
+        self.txt_filter.setObjectName("fwParamsFilter")
+        self.txt_filter.setPlaceholderText(tr("params_filter_placeholder"))
+        self.txt_filter.setClearButtonEnabled(True)
+        self.txt_filter.setFixedWidth(240)
+        self.txt_filter.textChanged.connect(lambda t: self._on_filter_changed(t))
+        row2.addWidget(self.txt_filter, 0, Qt.AlignVCenter)
+
+        root.addWidget(self.row2)
+        self._row2_lay = row2
+
+        # ---- Body: empty state / table
+        self.stack = QStackedWidget()
+        self.stack.setObjectName("fwParamsStack")
+
+        self.page_empty = QWidget()
+        self.page_empty.setObjectName("fwParamsEmptyPage")
+        lay_e = QVBoxLayout(self.page_empty)
+        lay_e.setContentsMargins(8, 8, 8, 8)
+        lay_e.setSpacing(6)
+        lay_e.addStretch(1)
+        self.lbl_empty_title = QLabel(self._empty_title)
+        self.lbl_empty_title.setObjectName("fwParamsEmptyTitle")
+        self.lbl_empty_title.setAlignment(Qt.AlignCenter)
+        lay_e.addWidget(self.lbl_empty_title)
+        self.lbl_empty_text = QLabel(self._empty_text)
+        self.lbl_empty_text.setObjectName("fwParamsEmptyText")
+        self.lbl_empty_text.setAlignment(Qt.AlignCenter)
+        self.lbl_empty_text.setWordWrap(True)
+        lay_e.addWidget(self.lbl_empty_text)
+        lay_e.addStretch(1)
+        self.stack.addWidget(self.page_empty)
+
+        self.model = QStandardItemModel(0, 2 + len(_FW_PP_PARAM_KEYS), self)
+        self.proxy = _FwParamsProxy(self)
+        self.proxy.setSourceModel(self.model)
+        self.proxy.setDynamicSortFilter(True)
+
+        self.table = _FwParamsTableView(on_copy=self.copy_selected_rows)
+        self.table.setObjectName("fwParamsTable")
+        self.table.setModel(self.proxy)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setWordWrap(False)
+        self.table.setTextElideMode(Qt.ElideRight)
+        self.table.setCornerButtonEnabled(False)
+        self.table.setIconSize(QSize(10, 10))
+        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+
+        row_h = max(26, self.table.fontMetrics().height() + 10)
+        vh = self.table.verticalHeader()
+        vh.setVisible(False)
+        vh.setSectionResizeMode(QHeaderView.Fixed)
+        vh.setDefaultSectionSize(row_h)
+        self.table.setMinimumHeight(row_h + max(30, self.table.fontMetrics().height() + 14))
+
+        hh = self.table.horizontalHeader()
+        hh.setHighlightSections(False)
+        hh.setSectionsClickable(True)
+        hh.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        hh.setMinimumSectionSize(64)
+        hh.setStretchLastSection(False)
+        hh.setSortIndicator(0, Qt.AscendingOrder)   # start sorted by sample name (natural order)
+        self.table.setSortingEnabled(True)
+
+        self.table.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.act_copy_sel = QAction("Copy selected rows\tCtrl+C", self.table)
+        self.act_copy_sel.triggered.connect(lambda *_: self.copy_selected_rows())
+        self.table.addAction(self.act_copy_sel)
+        self.act_copy_all = QAction("Copy table", self.table)
+        self.act_copy_all.triggered.connect(lambda *_: self.copy_visible_rows())
+        self.table.addAction(self.act_copy_all)
+        self.act_sort_reset = QAction("Clear sorting (data order)", self.table)
+        self.act_sort_reset.triggered.connect(lambda *_: self._reset_sort())
+        self.table.addAction(self.act_sort_reset)
+
+        self.stack.addWidget(self.table)
+        root.addWidget(self.stack, 1)
+
+        self.sync_theme(force=True)
+        self._show_empty()
+
+    # ------------------------------------------------------------------ data
+    def set_datasets(self, datasets, method_label="", group_colors=None, legacy_text="",
+                     group_markers=None, group_of=None):
+        """datasets: list of (base_key, DataFrame, group_column).
+        group_of(base_key, sample, data_label) -> group shown (custom groups); group_markers: {key: symbol}."""
+        self._group_markers = dict(group_markers or {})
+        self._group_of = group_of if callable(group_of) else None
+        self._legacy_text = "" if legacy_text is None else str(legacy_text)
+        self._method_label = str(method_label or "")
+        self._group_colors = dict(group_colors or {})
+
+        new, order = {}, []
+        for item in (datasets or []):
+            try:
+                base_key, df, gcol = item
+            except Exception:
+                continue
+            if df is None or getattr(df, "empty", True):
+                continue
+            try:
+                bk = base_key_canon(base_key)
+            except Exception:
+                bk = base_key
+            if bk in new:
+                continue
+            new[bk] = (df, gcol)
+            order.append(bk)
+
+        # A dataset that was just loaded/combined is shown right away;
+        # otherwise the dataset the user was looking at stays selected.
+        appeared = [k for k in order if k not in self._known]
+        if self._known and len(appeared) == 1:
+            self._current = appeared[0]
+        elif self._current not in new:
+            self._current = order[0] if order else None
+        self._known = set(order)
+        self._datasets = new
+        self._order = order
+
+        self._refresh_badge()
+        self._refresh_chips()
+        if not order:
+            self._show_empty()
+            return
+        self._apply_toolbar_state()
+        self.stack.setCurrentWidget(self.table)
+        self._fill_table()
+
+    def current_dataset(self):
+        """Canonical key of the dataset shown ('Tamiz' | 'Laser' | 'Híbrido') or None."""
+        return self._current
+
+    def _refresh_badge(self):
+        txt = self._method_label.strip()
+        self.lbl_method.setText(txt)
+        self.lbl_method.setVisible(bool(txt))
+
+    def _refresh_chips(self):
+        for bk, btn in self._chips.items():
+            present = bk in self._datasets
+            btn.setVisible(present)
+            if present:
+                n = int(len(self._datasets[bk][0]))
+                txt = f"{base_name_display(bk)}  {n}"
+                btn.setText(txt)
+                btn.setMinimumWidth(self._chip_min_width(btn, txt))
+                btn.setToolTip(f"{_FW_PP_DATASET_HINTS.get(bk, '')} ({n} {'sample' if n == 1 else 'samples'})")
+        if self._current in self._chips and self._current in self._datasets:
+            self._chips[self._current].setChecked(True)
+        self._apply_toolbar_state()
+
+    def _chip_min_width(self, btn, text):
+        """Width that fits the text in bold (the selected chip is drawn bold) plus the padding."""
+        try:
+            f = QFont(btn.font())
+            f.setWeight(QFont.Bold)
+            fm = QFontMetrics(f)
+            try:
+                w = fm.horizontalAdvance(text)
+            except AttributeError:
+                w = fm.width(text)
+            return int(w + 2 * 16 + 2 + 8)
+        except Exception:
+            return 0
+
+    def _select_dataset(self, bk):
+        try:
+            if bk not in self._datasets:
+                return
+            if bk == self._current and self.model.rowCount() > 0:
+                self._refresh_chips()
+                return
+            self._current = bk
+            self._refresh_chips()
+            self._fill_table()
+        except Exception:
+            traceback.print_exc()
+
+    def _param_header(self, key):
+        try:
+            return param_label(key)
+        except Exception:
+            return str(key)
+
+    def _sample_tooltip(self, extra, sample_txt, grp_txt, disp_base):
+        """extra: {column: value} with the optional hybrid metadata of the row."""
+        lines = [f"{sample_txt}  ·  {grp_txt} ({disp_base})"]
+        for col, label in (("Tamiz Sample", "Sieve sample"),
+                           ("Laser Sample", "Laser sample"),
+                           ("Hybrid Method", "Hybrid method")):
+            v = extra.get(col, None)
+            if not _fw_pp_is_missing(v) and str(v).strip():
+                lines.append(f"{label}: {v}")
+        v = _fw_pp_float(extra.get("phi*", None))
+        if v is not None:
+            lines.append(f"φ* = {_fw_pp_fmt(v)}")
+        return "\n".join(lines)
+
+    def _dot_icon(self, color, marker="o"):
+        try:
+            dpr = float(self.devicePixelRatioF())
+        except Exception:
+            dpr = 1.0
+        dpr = max(1.0, dpr)
+        key = (repr(color), str(marker), dpr)
+        ic = self._dot_cache.get(key)
+        if ic is not None:
+            return ic
+        if marker and marker != "o":
+            try:
+                ic = fw_marker_icon(marker, color, 11, dpr)
+                self._dot_cache[key] = ic
+                return ic
+            except Exception:
+                pass
+        size = 10
+        pm = QPixmap(int(round(size * dpr)), int(round(size * dpr)))
+        pm.setDevicePixelRatio(dpr)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        try:
+            p.setRenderHint(QPainter.Antialiasing, True)
+            qc = QColor(_fw_pp_color_name(color))
+            p.setPen(QPen(qc.darker(135), 1.0))
+            p.setBrush(QBrush(qc))
+            p.drawEllipse(QRectF(0.5, 0.5, size - 1.0, size - 1.0))
+        finally:
+            p.end()
+        ic = QIcon(pm)
+        self._dot_cache[key] = ic
+        return ic
+
+    def _fill_table(self):
+        bk = self._current
+        pack = self._datasets.get(bk)
+        if pack is None:
+            self._show_empty()
+            return
+        df, gcol = pack
+        cols = list(df.columns)
+        if "Hybrid Sample" in cols:
+            scol = "Hybrid Sample"
+        elif "Sample" in cols:
+            scol = "Sample"
+        else:
+            scol = cols[0] if cols else None
+        has_group = bool(gcol) and (gcol in cols)
+        group_header = str(gcol) if has_group else "Group"
+        keys = list(_FW_PP_PARAM_KEYS)
+        headers = ["Sample", group_header] + [self._param_header(k) for k in keys]
+
+        na_brush = QBrush(QColor(self._pal.get("na", "#a0aab8")))
+        bold = QFont(self.table.font())
+        bold.setWeight(QFont.DemiBold)
+        disp_base = base_name_display(bk)
+
+        self.table.setSortingEnabled(False)
+        self.model.removeRows(0, self.model.rowCount())
+        self.model.setColumnCount(len(headers))
+        for c, text in enumerate(headers):
+            hi = QStandardItem(text)
+            if c < 2:
+                hi.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            else:
+                hi.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                tip = _FW_PP_PARAM_HINTS.get(keys[c - 2], "")
+                if self._method_label:
+                    tip = f"{tip}\nMethod: {self._method_label}"
+                hi.setToolTip(tip)
+            self.model.setHorizontalHeaderItem(c, hi)
+
+        # Read column by column (row-wise iteration would turn integer names into floats)
+        n_rows = len(df)
+        blank = [None] * n_rows
+        v_sample = _fw_pp_column_list(df, scol) if scol is not None else blank
+        v_group = _fw_pp_column_list(df, gcol) if has_group else blank
+        v_params = {k: (_fw_pp_column_list(df, k) if k in cols else blank) for k in keys}
+        v_extra = {c: _fw_pp_column_list(df, c)
+                   for c in ("Tamiz Sample", "Laser Sample", "Hybrid Method", "phi*") if c in cols}
+
+        groups_seen = set()
+        for i in range(n_rows):
+            sample = v_sample[i]
+            sample_txt = "" if _fw_pp_is_missing(sample) else str(sample)
+            grp_raw = v_group[i]
+            grp_eff = grp_raw
+            if self._group_of is not None:
+                try:
+                    grp_eff = self._group_of(bk, sample, grp_raw)
+                except Exception:
+                    grp_eff = grp_raw
+            grp_txt = _norm_group_name(grp_eff)
+            groups_seen.add(grp_txt)
+            gk_row = _gkey(grp_eff, bk)
+            color = self._group_colors.get(gk_row, "#94a3b8")
+
+            it_s = QStandardItem(sample_txt)
+            it_s.setEditable(False)
+            it_s.setFont(bold)
+            it_s.setData(sample_txt, _FW_PP_ROLE_RAW)
+            it_s.setToolTip(self._sample_tooltip({c: v[i] for c, v in v_extra.items()},
+                                                 sample_txt, grp_txt, disp_base))
+
+            it_g = QStandardItem(grp_txt)
+            it_g.setEditable(False)
+            it_g.setData(grp_txt, _FW_PP_ROLE_RAW)
+            it_g.setIcon(self._dot_icon(color, self._group_markers.get(gk_row, "o")))
+            if grp_txt != _norm_group_name(grp_raw):
+                it_g.setToolTip(f"{grp_txt} ({disp_base})\nCustom group · data label: {_norm_group_name(grp_raw)}")
+            else:
+                it_g.setToolTip(f"{grp_txt} ({disp_base})")
+
+            row_items = [it_s, it_g]
+            for k in keys:
+                f = _fw_pp_float(v_params[k][i])
+                txt = _fw_pp_fmt(f)
+                it = QStandardItem(txt if txt is not None else "\u2014")
+                it.setEditable(False)
+                it.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                it.setData(f, _FW_PP_ROLE_SORT)
+                it.setData(f, _FW_PP_ROLE_RAW)
+                if f is None:
+                    it.setForeground(na_brush)
+                    it.setToolTip("Not available for this sample")
+                row_items.append(it)
+            self.model.appendRow(row_items)
+
+        self._n_groups = len(groups_seen)
+        self.table.setSortingEnabled(True)   # re-applies the column the user sorted by
+        self._apply_column_layout()
+        self._update_summary()
+        self.btn_copy.setEnabled(self.proxy.rowCount() > 0)
+
+    def _apply_column_layout(self):
+        t = self.table
+        hh = t.horizontalHeader()
+        n = self.model.columnCount()
+        for c in range(n):
+            hh.setSectionResizeMode(c, QHeaderView.Interactive if c < 2 else QHeaderView.Stretch)
+        for c, (lo, hi) in ((0, (110, 320)), (1, (170, 380))):
+            if c < n:
+                t.resizeColumnToContents(c)
+                t.setColumnWidth(c, max(lo, min(hi, t.columnWidth(c) + 20)))
+
+    def _update_summary(self):
+        total = self.model.rowCount()
+        shown = self.proxy.rowCount()
+        noun = "sample" if total == 1 else "samples"
+        txt = f"{shown} of {total} {noun}" if shown != total else f"{total} {noun}"
+        if self._n_groups:
+            txt += f"  ·  {self._n_groups} {'group' if self._n_groups == 1 else 'groups'}"
+        self.lbl_summary.setText(txt)
+
+    def _on_filter_changed(self, text):
+        try:
+            self.proxy.set_needle(text)
+            self._update_summary()
+            self.btn_copy.setEnabled(self.proxy.rowCount() > 0)
+        except Exception:
+            traceback.print_exc()
+
+    def _reset_sort(self):
+        try:
+            self.table.horizontalHeader().setSortIndicator(-1, Qt.AscendingOrder)
+            self.proxy.sort(-1)
+        except Exception:
+            traceback.print_exc()
+
+    def _show_empty(self):
+        self.table.setSortingEnabled(False)
+        self.model.removeRows(0, self.model.rowCount())
+        self.table.setSortingEnabled(True)
+        self._n_groups = 0
+        self.lbl_empty_title.setText(self._empty_title)
+        self.lbl_empty_text.setText(self._empty_text)
+        self.lbl_summary.setText("")
+        self.btn_copy.setEnabled(False)
+        self._apply_toolbar_state()
+        self.stack.setCurrentWidget(self.page_empty)
+
+    # ------------------------------------------------------------ layout
+    def _apply_toolbar_state(self):
+        has = bool(self._order)
+        self.seg.setVisible(has)
+        self.txt_filter.setVisible(has)
+        self.lbl_summary.setVisible(has and not self._compact)
+        self.row2.setVisible(has and not self._compact)
+
+    def _set_compact(self, flag):
+        """Compact = one header row (selector and filter next to the title)."""
+        flag = bool(flag)
+        if flag == self._compact:
+            return
+        r1, r2 = self._row1, self._row2_lay
+        if flag:
+            r2.removeWidget(self.seg)
+            r2.removeWidget(self.txt_filter)
+            # row 1: title, badge, [selector], stretch, [filter], copy, export
+            r1.insertWidget(2, self.seg, 0, Qt.AlignVCenter)
+            r1.insertWidget(4, self.txt_filter, 0, Qt.AlignVCenter)
+            self.txt_filter.setFixedWidth(180)
+        else:
+            r1.removeWidget(self.seg)
+            r1.removeWidget(self.txt_filter)
+            # row 2: selector, stretch, summary, filter
+            r2.insertWidget(0, self.seg, 0, Qt.AlignVCenter)
+            r2.addWidget(self.txt_filter, 0, Qt.AlignVCenter)
+            self.txt_filter.setFixedWidth(240)
+        self._compact = flag
+        self._apply_toolbar_state()
+
+    def _auto_compact(self):
+        self._compact_pending = False
+        try:
+            h = self.height()
+            if not self._compact and h < self._COMPACT_BELOW:
+                self._set_compact(True)
+            elif self._compact and h >= self._EXPAND_AT:
+                self._set_compact(False)
+        except Exception:
+            traceback.print_exc()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        try:
+            if not self._compact_pending:
+                self._compact_pending = True
+                QTimer.singleShot(0, lambda: self._auto_compact())
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------ copy
+    def _decimal_point(self):
+        try:
+            p = str(QLocale.system().decimalPoint())
+            return p[:1] if p else "."
+        except Exception:
+            return "."
+
+    def _rows_as_tsv(self, proxy_rows):
+        n = self.model.columnCount()
+        point = self._decimal_point()
+        header = []
+        for c in range(n):
+            h = self.model.headerData(c, Qt.Horizontal, Qt.DisplayRole)
+            header.append("" if h is None else str(h))
+        lines = ["\t".join(header)]
+        for pr in proxy_rows:
+            cells = []
+            for c in range(n):
+                sidx = self.proxy.mapToSource(self.proxy.index(pr, c))
+                raw = self.model.data(sidx, _FW_PP_ROLE_RAW)
+                if c >= 2:
+                    f = _fw_pp_float(raw)
+                    txt = _fw_pp_fmt(f, point=point, minus="-") if f is not None else ""
+                else:
+                    txt = "" if raw is None else str(raw)
+                cells.append(txt.replace("\t", " ").replace("\r", " ").replace("\n", " "))
+            lines.append("\t".join(cells))
+        return "\n".join(lines) + "\n"
+
+    def _to_clipboard(self, proxy_rows):
+        if not proxy_rows:
+            return
+        QApplication.clipboard().setText(self._rows_as_tsv(proxy_rows))
+        k = len(proxy_rows)
+        self._flash(f"Copied {k} {'row' if k == 1 else 'rows'} to the clipboard")
+        self._flash_copy_button()
+
+    def _flash_copy_button(self, ms=1600):
+        self._copy_token += 1
+        token = self._copy_token
+        self.btn_copy.setMinimumWidth(self.btn_copy.width())
+        self.btn_copy.setText(tr("params_copied"))
+        QTimer.singleShot(int(ms), lambda: self._end_copy_flash(token))
+
+    def _end_copy_flash(self, token):
+        try:
+            if token != self._copy_token:
+                return
+            self.btn_copy.setText(tr("params_copy_table"))
+            self.btn_copy.setMinimumWidth(0)
+        except Exception:
+            pass
+
+    def copy_selected_rows(self):
+        """Ctrl+C: copies the selected rows (or every visible row if none is selected)."""
+        try:
+            sm = self.table.selectionModel()
+            rows = sorted({ix.row() for ix in sm.selectedRows()}) if sm is not None else []
+            if not rows:
+                rows = list(range(self.proxy.rowCount()))
+            self._to_clipboard(rows)
+        except Exception:
+            traceback.print_exc()
+
+    def copy_visible_rows(self):
+        """'Copy table': copies every row currently shown (respects the filter)."""
+        try:
+            self._to_clipboard(list(range(self.proxy.rowCount())))
+        except Exception:
+            traceback.print_exc()
+
+    def _flash(self, msg, ms=2600):
+        self._flash_token += 1
+        token = self._flash_token
+        self.lbl_summary.setText(str(msg))
+        QTimer.singleShot(int(ms), lambda: self._end_flash(token))
+
+    def _end_flash(self, token):
+        try:
+            if token != self._flash_token:
+                return
+            if self._order:
+                self._update_summary()
+            else:
+                self.lbl_summary.setText("")
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------ theme
+    def _theme_name(self):
+        th = getattr(self._owner, "theme", None) if self._owner is not None else None
+        if th is None:
+            try:
+                th = getattr(self.window(), "theme", None)
+            except Exception:
+                th = None
+        th = str(th or "light").strip().lower()
+        return "dark" if th == "dark" else "light"
+
+    def _font_sizes(self):
+        """Title/badge sizes relative to the application font (9 pt on Windows)."""
+        try:
+            base = float(QFontInfo(self.font()).pointSizeF())
+        except Exception:
+            base = 9.0
+        if not (base > 0):
+            base = 9.0
+        return {
+            "title_pt": f"{int(round(base + 2))}pt",
+            "badge_pt": f"{max(7, int(round(base - 1)))}pt",
+            "empty_pt": f"{int(round(base + 1))}pt",
+        }
+
+    def sync_theme(self, force=False):
+        """Apply the light/dark colors that match MainWindow.theme (no-op if unchanged)."""
+        self._theme_pending = False
+        try:
+            theme = self._theme_name()
+            if not force and theme == self._applied_theme:
+                return
+            self._applied_theme = theme
+            self._pal = dict(_FW_PP_PALETTES.get(theme, _FW_PP_PALETTES["light"]))
+            self.setStyleSheet(_FW_PP_QSS.substitute(self._pal, **self._font_sizes()))
+            if self._order and self._current in self._datasets:
+                self._fill_table()
+        except Exception:
+            traceback.print_exc()
+
+    def changeEvent(self, e):
+        # Settings > UI theme replaces the application style sheet; follow it.
+        try:
+            if e.type() in (QEvent.StyleChange, QEvent.PaletteChange) and not self._theme_pending:
+                self._theme_pending = True
+                QTimer.singleShot(0, lambda: self.sync_theme())
+        except Exception:
+            pass
+        super().changeEvent(e)
+
+    # ------------------------------------------- legacy QTextEdit-like API
+    def setPlainText(self, text):
+        self._legacy_text = "" if text is None else str(text)
+        if not self._order:
+            msg = self._legacy_text.strip()
+            self.lbl_empty_text.setText(msg if msg else self._empty_text)
+
+    def toPlainText(self):
+        return self._legacy_text
+
+    def append(self, text):
+        t = "" if text is None else str(text)
+        self._legacy_text = (self._legacy_text + "\n" + t) if self._legacy_text else t
+        last = t.strip().splitlines()[-1] if t.strip() else ""
+        if last:
+            if self._order:
+                self._flash(last, ms=5000)
+            else:
+                self.lbl_empty_text.setText(last)
+
+    def clear(self):
+        self._legacy_text = ""
+
+    def setReadOnly(self, flag=True):
+        return None
+
+    def isReadOnly(self):
+        return True
+
+# endregion
+
+
+
+# region # === Block 6C: Draggable divider between the parameters table and the plot ===
+"""
+Divider of the "Granulometric parameters" tab: drag it up or down to give more
+room to the table or to the plot. Double click on it restores the default sizes.
+The position is remembered between sessions (QSettings).
+"""
+from PyQt5.QtWidgets import QSplitter, QSplitterHandle
+
+
+class _FwSplitterHandle(QSplitterHandle):
+    """Divider with a small visible grip."""
+
+    def __init__(self, orientation, parent):
+        super().__init__(orientation, parent)
+        self._hover = False
+        self._down = False
+        self.setMouseTracking(True)
+        self.setToolTip("Drag to resize the table and the plot (double click: default sizes)")
+        self.setCursor(Qt.SplitVCursor if orientation == Qt.Vertical else Qt.SplitHCursor)
+
+    def enterEvent(self, e):
+        self._hover = True
+        self.update()
+        super().enterEvent(e)
+
+    def leaveEvent(self, e):
+        self._hover = False
+        self.update()
+        super().leaveEvent(e)
+
+    def mousePressEvent(self, e):
+        self._down = True
+        self.update()
+        super().mousePressEvent(e)
+
+    def mouseReleaseEvent(self, e):
+        self._down = False
+        self.update()
+        super().mouseReleaseEvent(e)
+
+    def mouseDoubleClickEvent(self, e):
+        try:
+            sp = self.splitter()
+            if hasattr(sp, "reset_sizes"):
+                sp.reset_sizes()
+                e.accept()
+                return
+        except Exception:
+            pass
+        super().mouseDoubleClickEvent(e)
+
+    def paintEvent(self, e):
+        p = QPainter(self)
+        try:
+            p.setRenderHint(QPainter.Antialiasing, True)
+            try:
+                dark = str(getattr(self.window(), "theme", "light")).strip().lower() == "dark"
+            except Exception:
+                dark = False
+            if dark:
+                col = "#9aa3ad" if (self._hover or self._down) else "#5d6369"
+            else:
+                col = "#64748b" if (self._hover or self._down) else "#c3ccd8"
+            p.setPen(Qt.NoPen)
+            p.setBrush(QBrush(QColor(col)))
+            r = self.rect()
+            if self.orientation() == Qt.Vertical:
+                w, h = 46.0, 4.0
+            else:
+                w, h = 4.0, 46.0
+            x = r.x() + (r.width() - w) / 2.0
+            y = r.y() + (r.height() - h) / 2.0
+            p.drawRoundedRect(QRectF(x, y, w, h), 2.0, 2.0)
+        finally:
+            p.end()
+
+
+class FwSplitter(QSplitter):
+    """QSplitter with a visible grip, no collapsing, and remembered position."""
+
+    def __init__(self, orientation, owner=None, settings_key=None, default_ratio=0.5, parent=None):
+        super().__init__(orientation, parent)
+        self._owner = owner
+        self._settings_key = settings_key
+        self._default_ratio = float(default_ratio)
+        self.setObjectName("fwSplitter")
+        self.setChildrenCollapsible(False)
+        self.setHandleWidth(12)
+        self.setOpaqueResize(True)
+        self.splitterMoved.connect(lambda *_: self._save_state())
+
+    def createHandle(self):
+        return _FwSplitterHandle(self.orientation(), self)
+
+    def _settings(self):
+        return getattr(self._owner, "settings", None) if self._owner is not None else None
+
+    def finish_setup(self):
+        """Call after adding the widgets: restores the saved position or applies the default one."""
+        if not self._restore_state():
+            self.reset_sizes(save=False)
+
+    def reset_sizes(self, save=True):
+        r = min(0.9, max(0.1, self._default_ratio))
+        total = self.height() if self.orientation() == Qt.Vertical else self.width()
+        if self.isVisible() and total > 100:
+            total -= self.handleWidth()
+        else:
+            total = 1000          # before the first show only the proportion matters
+        a = int(round(total * r))
+        self.setSizes([a, max(1, total - a)])
+        if save:
+            self._save_state()
+
+    def _save_state(self):
+        st = self._settings()
+        if st is None or not self._settings_key:
+            return
+        try:
+            st.setValue(self._settings_key, self.saveState())
+        except Exception:
+            pass
+
+    def _restore_state(self):
+        st = self._settings()
+        if st is None or not self._settings_key:
+            return False
+        try:
+            val = st.value(self._settings_key, None)
+            if val is None:
+                return False
+            ok = bool(self.restoreState(val))
+            if ok:
+                sizes = self.sizes()
+                if len(sizes) != self.count() or min(sizes or [0]) <= 0:
+                    return False
+            return ok
+        except Exception:
+            return False
+
+# endregion
+
+
+
+# region # === Block 6D: Groups (data labels or custom), colors, symbols, plot viewer and exact export ===
+"""
+Granulometric parameters tab:
+  - "Groups" button: choose how samples are grouped (data labels of the files, or
+    custom groups made by the user), the color and symbol of each group, which
+    groups are shown in the plot and which ones get an envelope.
+    The loaded files are never modified; custom groups are saved in the project.
+  - "View plot" button: opens the plot in its own window at the exact size and
+    quality of the exported image (square by default). Size, DPI, texts and legend
+    set there are used for the export only; point size, colors and symbols are
+    also applied to the plot of the main window.
+  - "Export image": saves the plot with the size and DPI chosen in "View plot".
+"""
+import json as _fw_json
+import math as _fw_math
+
+from PyQt5.QtCore import QPointF
+from PyQt5.QtGui import QPolygonF, QImage
+from PyQt5.QtWidgets import (
+    QDialog, QDialogButtonBox, QRadioButton, QTableWidget, QTableWidgetItem, QComboBox,
+    QToolButton, QColorDialog, QMessageBox, QScrollArea, QGroupBox, QDoubleSpinBox,
+    QSpinBox, QCheckBox, QFileDialog, QGridLayout, QTabBar, QTabWidget, QFormLayout
+)
+from matplotlib.figure import Figure as _FwFigure
+from matplotlib.backends.backend_agg import FigureCanvasAgg as _FwCanvasAgg
+
+FW_MARKERS = [
+    ("o", "Circle"), ("s", "Square"), ("^", "Triangle up"), ("v", "Triangle down"),
+    ("D", "Diamond"), ("p", "Pentagon"), ("h", "Hexagon"), ("*", "Star"),
+    ("P", "Plus"), ("X", "Cross"),
+]
+# Visual size correction so every symbol looks about as big as a circle of the same size.
+_FW_MARKER_SCALE = {"o": 1.0, "s": 0.9, "^": 1.1, "v": 1.1, "D": 0.85, "p": 1.0,
+                    "h": 1.0, "*": 1.5, "P": 1.05, "X": 1.05}
+
+FW_LEGEND_LOCS = [
+    ("best", "Best (automatic)"), ("upper right", "Upper right"), ("upper left", "Upper left"),
+    ("lower right", "Lower right"), ("lower left", "Lower left"), ("center right", "Center right"),
+    ("upper center", "Upper center"), ("lower center", "Lower center"),
+    ("outside right", "Outside, right"), ("outside bottom", "Outside, below"),
+]
+
+FW_XY_STYLE_DEFAULTS = {
+    # export only (View plot window)
+    "width": 16.0, "height": 16.0, "unit": "cm", "dpi": 300,
+    "show_title": True, "title_text": "Granulometric parameters plot", "title_size": 12.0,
+    "label_size": 11.0, "tick_size": 10.0, "names_size": 8.0,
+    "legend_show": True, "legend_loc": "best", "legend_size": 9.0, "legend_frame": True, "legend_cols": 1,
+    "grid": True,
+    # also applied to the plot of the main window
+    "marker_size": 6.5, "edge_width": 0.45, "alpha": 0.95, "show_envelopes": True,
+}
+FW_XY_SHARED_KEYS = ("marker_size", "edge_width", "alpha", "show_envelopes")
+
+
+# ------------------------------------------------------------------ helpers
+def _fw_sample_id(v) -> str:
+    """Stable text id of a sample (1.0 -> '1')."""
+    if v is None:
+        return ""
+    try:
+        if isinstance(v, float) and v == v and float(v).is_integer():
+            return str(int(v))
+    except Exception:
+        pass
+    return str(v).strip()
+
+
+def _fw_marker_s(marker, size_pt) -> float:
+    """matplotlib scatter 's' (pt^2) for a symbol of diameter size_pt."""
+    try:
+        d = float(size_pt) * _FW_MARKER_SCALE.get(marker, 1.0)
+    except Exception:
+        d = 6.5
+    return max(1.0, d * d)
+
+
+def _fw_marker_polygon(marker, cx, cy, r):
+    def reg(n, rot, rad=r):
+        return [QPointF(cx + rad * _fw_math.cos(rot + 2 * _fw_math.pi * k / n),
+                        cy + rad * _fw_math.sin(rot + 2 * _fw_math.pi * k / n)) for k in range(n)]
+    up = -_fw_math.pi / 2
+    if marker == "s":
+        q = r * 0.85
+        return QPolygonF([QPointF(cx - q, cy - q), QPointF(cx + q, cy - q),
+                          QPointF(cx + q, cy + q), QPointF(cx - q, cy + q)])
+    if marker == "^":
+        return QPolygonF(reg(3, up))
+    if marker == "v":
+        return QPolygonF(reg(3, -up))
+    if marker == "D":
+        return QPolygonF(reg(4, up))
+    if marker == "p":
+        return QPolygonF(reg(5, up))
+    if marker == "h":
+        return QPolygonF(reg(6, up))
+    if marker == "*":
+        pts = []
+        for k in range(10):
+            rad = r if k % 2 == 0 else r * 0.45
+            a = up + _fw_math.pi * k / 5
+            pts.append(QPointF(cx + rad * _fw_math.cos(a), cy + rad * _fw_math.sin(a)))
+        return QPolygonF(pts)
+    if marker in ("P", "X"):
+        w = r * 0.38
+        base = [(-w, -r), (w, -r), (w, -w), (r, -w), (r, w), (w, w), (w, r), (-w, r),
+                (-w, w), (-r, w), (-r, -w), (-w, -w)]
+        rot = _fw_math.pi / 4 if marker == "X" else 0.0
+        c, s = _fw_math.cos(rot), _fw_math.sin(rot)
+        return QPolygonF([QPointF(cx + x * c - y * s, cy + x * s + y * c) for x, y in base])
+    return None   # circle
+
+
+def fw_marker_icon(marker, color, size=12, dpr=1.0):
+    """Icon with the group symbol drawn in the group color."""
+    dpr = max(1.0, float(dpr or 1.0))
+    pm = QPixmap(int(round(size * dpr)), int(round(size * dpr)))
+    pm.setDevicePixelRatio(dpr)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    try:
+        p.setRenderHint(QPainter.Antialiasing, True)
+        qc = QColor(_fw_pp_color_name(color))
+        p.setPen(QPen(qc.darker(150), 1.0))
+        p.setBrush(QBrush(qc))
+        r = size / 2.0 - 0.8
+        poly = _fw_marker_polygon(marker, size / 2.0, size / 2.0, r)
+        if poly is None:
+            p.drawEllipse(QRectF(0.8, 0.8, size - 1.6, size - 1.6))
+        else:
+            p.drawPolygon(poly)
+    finally:
+        p.end()
+    return QIcon(pm)
+
+
+def _fw_color_icon(color, w=26, h=16, dpr=1.0):
+    dpr = max(1.0, float(dpr or 1.0))
+    pm = QPixmap(int(round(w * dpr)), int(round(h * dpr)))
+    pm.setDevicePixelRatio(dpr)
+    pm.fill(Qt.transparent)
+    p = QPainter(pm)
+    try:
+        p.setRenderHint(QPainter.Antialiasing, True)
+        qc = QColor(_fw_pp_color_name(color))
+        p.setPen(QPen(qc.darker(150), 1.0))
+        p.setBrush(QBrush(qc))
+        p.drawRoundedRect(QRectF(0.5, 0.5, w - 1.0, h - 1.0), 4.0, 4.0)
+    finally:
+        p.end()
+    return QIcon(pm)
+
+
+def _fw_next_palette_color(used):
+    used = {str(c).lower() for c in (used or [])}
+    for c in GROUP_COLORS:
+        if c.lower() not in used:
+            return c
+    return GROUP_COLORS[len(used) % len(GROUP_COLORS)]
+
+
+def _fw_fig_auto_layout(fig):
+    """Layout recomputed at every draw, so the plot always fits its canvas."""
+    try:
+        fig.set_layout_engine("tight")
+        return
+    except Exception:
+        pass
+    try:
+        fig.set_tight_layout(True)
+    except Exception:
+        pass
+
+
+def _fw_below_axes_transform(fig, ax):
+    """Transform that places a legend just below the x axis labels (offset in points)."""
+    from matplotlib.transforms import ScaledTranslation
+    off_pt = 34.0
+    try:
+        rnd = fig.canvas.get_renderer()
+        bb = ax.xaxis.get_tightbbox(rnd)
+        abb = ax.get_window_extent(rnd)
+        if bb is not None:
+            off_pt = max(10.0, (abb.y0 - bb.y0) * 72.0 / float(fig.dpi) + 6.0)
+    except Exception:
+        pass
+    return ax.transAxes + ScaledTranslation(0, -off_pt / 72.0, fig.dpi_scale_trans)
+
+
+# ------------------------------------------------------------------ plot style
+def _fw_xy_style(owner):
+    st = getattr(owner, "xy_style", None)
+    if not isinstance(st, dict):
+        st = dict(FW_XY_STYLE_DEFAULTS)
+        try:
+            s = getattr(owner, "settings", None)
+            raw = s.value("xy_style_json", None) if s is not None else None
+            if raw:
+                d = _fw_json.loads(str(raw))
+                if isinstance(d, dict):
+                    st.update({k: v for k, v in d.items() if k in FW_XY_STYLE_DEFAULTS})
+        except Exception:
+            pass
+        owner.xy_style = st
+    for k, v in FW_XY_STYLE_DEFAULTS.items():
+        st.setdefault(k, v)
+    return st
+
+
+def _fw_save_xy_style(owner):
+    try:
+        s = getattr(owner, "settings", None)
+        if s is not None:
+            s.setValue("xy_style_json", _fw_json.dumps(_fw_xy_style(owner)))
+    except Exception:
+        pass
+
+
+def _fw_xy_size_in(st):
+    try:
+        w, h = float(st.get("width", 16.0)), float(st.get("height", 16.0))
+    except Exception:
+        w, h = 16.0, 16.0
+    f = 1.0 if str(st.get("unit", "cm")) == "in" else 1.0 / 2.54
+    return max(0.5, w * f), max(0.5, h * f)
+
+
+def _fw_xy_size_text(st):
+    w_in, h_in = _fw_xy_size_in(st)
+    dpi = int(st.get("dpi", 300))
+    u = str(st.get("unit", "cm"))
+    return (f"{float(st.get('width')):g} × {float(st.get('height')):g} {u} · {dpi} dpi · "
+            f"{int(round(w_in * dpi))} × {int(round(h_in * dpi))} px")
+
+
+def fw_draw_xy(owner, fig, style=None, export=True):
+    """
+    Draws the granulometric parameters plot on fig.
+    export=True: every setting of the View plot window (exact export look).
+    export=False: plot of the main window (shares points, colors and symbols).
+    """
+    st = dict(FW_XY_STYLE_DEFAULTS)
+    if isinstance(style, dict):
+        st.update(style)
+
+    def num(key, main_default):
+        if not export:
+            return main_default
+        try:
+            return float(st.get(key))
+        except Exception:
+            return main_default
+
+    fig.clear()
+    try:
+        fig.patch.set_facecolor("white")
+    except Exception:
+        pass
+    _fw_fig_auto_layout(fig)
+    ax = fig.add_subplot(111)
+
+    xk = owner.cmb_x.currentText().strip() if hasattr(owner, "cmb_x") else "mean"
+    yk = owner.cmb_y.currentText().strip() if hasattr(owner, "cmb_y") else "sigma"
+    label_fs, tick_fs = num("label_size", None), num("tick_size", None)
+    names_fs, legend_fs, title_fs = num("names_size", 8.0), num("legend_size", 8.0), num("title_size", None)
+
+    kw_l = {"fontsize": label_fs} if label_fs else {}
+    ax.set_xlabel(owner._axis_label_for_key(xk), **kw_l)
+    ax.set_ylabel(owner._axis_label_for_key(yk), **kw_l)
+    if tick_fs:
+        ax.tick_params(labelsize=tick_fs)
+    if (not export) or bool(st.get("grid", True)):
+        ax.grid(True, alpha=0.25)
+    if export:
+        title = str(st.get("title_text", "") or "").strip()
+        if bool(st.get("show_title", True)) and title:
+            ax.set_title(title, **({"fontsize": title_fs} if title_fs else {}))
+    else:
+        ax.set_title(tr("xy_plot_title"))
+
+    try:
+        pts = list(owner._iter_points_for_plot(xk, yk, tab_name="xy"))
+    except Exception:
+        traceback.print_exc()
+        pts = []
+    if not pts:
+        ax.text(0.5, 0.5, "No data to plot.", ha="center", va="center", transform=ax.transAxes)
+        return ax
+
+    by_group = {}
+    for p in pts:
+        by_group.setdefault(p["gkey"], []).append(p)
+    order = list((getattr(owner, "group_labels", None) or {}).keys())
+    keys = [k for k in order if k in by_group] + [k for k in by_group if k not in order]
+
+    if bool(st.get("show_envelopes", True)):
+        rib = getattr(owner, "selected_groups_ribbons", None)
+        rib = set(rib) if isinstance(rib, (list, tuple, set)) else None
+        for gk in keys:
+            if rib is not None and gk not in rib:
+                continue
+            arr = by_group[gk]
+            if len(arr) >= 3:
+                try:
+                    plot_ribbon(ax, np.array([a["x"] for a in arr], dtype=float),
+                                np.array([a["y"] for a in arr], dtype=float),
+                                arr[0]["color"], alpha=0.18, width=0.08, smooth=12)
+                except Exception:
+                    pass
+
+    try:
+        ms = float(st.get("marker_size", 6.5))
+        ew = float(st.get("edge_width", 0.45))
+        al = float(st.get("alpha", 0.95))
+    except Exception:
+        ms, ew, al = 6.5, 0.45, 0.95
+    show_names = bool(owner.chk_show_names.isChecked()) if hasattr(owner, "chk_show_names") else False
+    for gk in keys:
+        arr = by_group[gk]
+        m = arr[0].get("marker", "o") or "o"
+        ax.scatter([a["x"] for a in arr], [a["y"] for a in arr], s=_fw_marker_s(m, ms), marker=m,
+                   color=arr[0]["color"], edgecolors=("black" if ew > 0 else "none"),
+                   linewidths=max(0.0, ew), alpha=al, label=arr[0]["glabel"], zorder=3)
+        if show_names:
+            for a in arr:
+                ax.annotate(a["sample"], (a["x"], a["y"]), xytext=(4, 4), textcoords="offset points",
+                            fontsize=names_fs, alpha=0.9)
+
+    if (not export) or bool(st.get("legend_show", True)):
+        handles, labels = ax.get_legend_handles_labels()
+        uniq = {}
+        for h, l in zip(handles, labels):
+            uniq.setdefault(l, h)
+        if uniq:
+            loc = str(st.get("legend_loc", "best")) if export else "best"
+            try:
+                cols = max(1, int(st.get("legend_cols", 1))) if export else 1
+            except Exception:
+                cols = 1
+            kw = dict(fontsize=legend_fs, frameon=bool(st.get("legend_frame", True)) if export else True, ncol=cols)
+            if loc == "outside right":
+                kw.update(loc="upper left", bbox_to_anchor=(1.02, 1.0), borderaxespad=0.0)
+            elif loc == "outside bottom":
+                if cols <= 1:
+                    kw["ncol"] = min(4, len(uniq))
+                kw.update(loc="upper center", bbox_to_anchor=(0.5, 0.0),
+                          bbox_transform=_fw_below_axes_transform(fig, ax), borderaxespad=0.0)
+            else:
+                kw["loc"] = loc if loc in dict(FW_LEGEND_LOCS) else "best"
+            ax.legend(list(uniq.values()), list(uniq.keys()), **kw)
+    return ax
+
+
+_FW_EXPORT_FILTERS = ("PNG image (*.png);;TIFF image (*.tif *.tiff);;JPEG image (*.jpg *.jpeg);;"
+                      "SVG vector (*.svg);;PDF document (*.pdf)")
+_FW_EXPORT_EXT = {".png": "png", ".tif": "tiff", ".tiff": "tiff", ".jpg": "jpeg", ".jpeg": "jpeg",
+                  ".svg": "svg", ".pdf": "pdf"}
+
+
+def fw_export_xy(owner, parent=None):
+    """Saves the plot with the exact size and DPI chosen in View plot."""
+    parent = parent or owner
+    st = _fw_xy_style(owner)
+    w_in, h_in = _fw_xy_size_in(st)
+    dpi = int(st.get("dpi", 300))
+    start_dir = getattr(owner, "last_dir", None) or get_script_dir()
+    file, sel = QFileDialog.getSaveFileName(
+        parent, f"Export plot ({_fw_xy_size_text(st)})",
+        os.path.join(start_dir, "granulometric_parameters_plot.png"), _FW_EXPORT_FILTERS)
+    if not file:
+        return None
+    ext = os.path.splitext(file)[1].lower()
+    if ext not in _FW_EXPORT_EXT:
+        s = str(sel or "")
+        ext = ".tif" if "TIFF" in s else ".jpg" if "JPEG" in s else ".svg" if "SVG" in s else ".pdf" if "PDF" in s else ".png"
+        file += ext
+    fmt = _FW_EXPORT_EXT[ext]
+    try:
+        fig = _FwFigure(figsize=(w_in, h_in), dpi=dpi)
+        _FwCanvasAgg(fig)
+        fw_draw_xy(owner, fig, st, export=True)
+        kw = dict(dpi=dpi, facecolor="white", format=fmt)
+        if fmt == "tiff":
+            kw["pil_kwargs"] = {"compression": "tiff_lzw"}
+        elif fmt == "jpeg":
+            kw["pil_kwargs"] = {"quality": 95}
+        try:
+            fig.savefig(file, **kw)
+        except TypeError:
+            kw.pop("pil_kwargs", None)
+            fig.savefig(file, **kw)
+    except Exception as e:
+        QMessageBox.warning(parent, tr("error"), f"Could not export the plot:\n{e}")
+        return None
+    try:
+        owner.last_dir = os.path.dirname(file)
+        if getattr(owner, "settings", None) is not None:
+            owner.settings.setValue("last_dir", owner.last_dir)
+    except Exception:
+        pass
+    QMessageBox.information(parent, tr("info"), f"Image saved to:\n{file}\n\n{_fw_xy_size_text(st)}")
+    return file
+
+
+# ------------------------------------------------------------------ tabs (selected tab is bold)
+class _FwTabBar(QTabBar):
+    """The selected tab is drawn bold by the style sheet: reserve that width so the name is not cut."""
+
+    def tabSizeHint(self, index):
+        s = super().tabSizeHint(index)
+        try:
+            t = self.tabText(index)
+            f = QFont(self.font())
+            f.setWeight(QFont.Bold)
+            extra = QFontMetrics(f).horizontalAdvance(t) - self.fontMetrics().horizontalAdvance(t)
+            if extra > 0:
+                s.setWidth(s.width() + extra + 8)
+        except Exception:
+            pass
+        return s
+
+
+class FwTabWidget(QTabWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        try:
+            self.setTabBar(_FwTabBar(self))
+        except Exception:
+            pass
+
+
+# ------------------------------------------------------------------ Groups dialog
+class FwGroupsDialog(QDialog):
+    """Groups: data labels or custom groups, colors, symbols, visibility and envelopes."""
+
+    C_SHOW, C_COLOR, C_SYMBOL, C_NAME, C_COUNT, C_ENV = range(6)
+
+    def __init__(self, owner, show_visibility=True, parent=None):
+        super().__init__(parent or owner)
+        self.owner = owner
+        self.show_visibility = bool(show_visibility)
+        self.setWindowTitle("Groups")
+        self.resize(1080, 660)
+        try:
+            self._dpr = float(self.devicePixelRatioF())
+        except Exception:
+            self._dpr = 1.0
+        self._mode = "custom" if str(getattr(owner, "group_mode", "labels")) == "custom" else "labels"
+        self._building = False
+
+        cg = dict(getattr(owner, "custom_groups", None) or {})
+        self._samples = []
+        for bk, df, gcol, scol in owner._fw_group_bases():
+            n = len(df)
+            gv = _fw_pp_column_list(df, gcol) if gcol in df.columns else ["No Group"] * n
+            sv = _fw_pp_column_list(df, scol) if scol in df.columns else [None] * n
+            for s, g in zip(sv, gv):
+                sid = _fw_sample_id(s)
+                label = _norm_group_name(g)
+                c = cg.get(f"{bk}|{sid}")
+                self._samples.append({"base": bk, "sid": sid, "label": label,
+                                      "custom": _norm_group_name(c) if c not in (None, "") else label})
+
+        self._known = set((getattr(owner, "group_labels", None) or {}).keys())
+        vis = list(getattr(owner, "selected_groups_xy", []) or [])
+        self._vis = set(vis) if vis else None
+        rib = getattr(owner, "selected_groups_ribbons", None)
+        self._rib = set(rib) if isinstance(rib, (list, tuple, set)) else None
+        self._style = {}
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(16, 14, 16, 12)
+        root.setSpacing(10)
+        t = QLabel("Groups")
+        f = QFont(t.font())
+        f.setPointSizeF(max(9.0, f.pointSizeF() + 3))
+        f.setWeight(QFont.DemiBold)
+        t.setFont(f)
+        root.addWidget(t)
+        cap = QLabel("Choose how samples are grouped and how each group looks in the plots. "
+                     "Your files are never modified.")
+        cap.setWordWrap(True)
+        root.addWidget(cap)
+
+        box = QGroupBox("Group samples by")
+        bl = QVBoxLayout(box)
+        self.rb_labels = QRadioButton("Data labels  (the Group column of the loaded files, default)")
+        self.rb_custom = QRadioButton("Custom groups  (put each sample in the group you want)")
+        (self.rb_custom if self._mode == "custom" else self.rb_labels).setChecked(True)
+        self.rb_labels.toggled.connect(lambda on: self._set_mode("labels" if on else "custom"))
+        bl.addWidget(self.rb_labels)
+        bl.addWidget(self.rb_custom)
+        root.addWidget(box)
+
+        split = QSplitter(Qt.Horizontal)
+        split.setChildrenCollapsible(False)
+
+        gl = QGroupBox("Groups")
+        gv_l = QVBoxLayout(gl)
+        self.tbl_g = QTableWidget(0, 6)
+        self.tbl_g.setHorizontalHeaderLabels(["Show", "Color", "Symbol", "Group", "Samples", "Envelope"])
+        self.tbl_g.verticalHeader().setVisible(False)
+        self.tbl_g.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tbl_g.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tbl_g.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        hh = self.tbl_g.horizontalHeader()
+        for c in range(6):
+            hh.setSectionResizeMode(c, QHeaderView.Stretch if c == self.C_NAME else QHeaderView.ResizeToContents)
+        self.tbl_g.verticalHeader().setDefaultSectionSize(max(30, self.fontMetrics().height() + 14))
+        self.tbl_g.setColumnHidden(self.C_SHOW, not self.show_visibility)
+        self.tbl_g.setColumnHidden(self.C_ENV, not self.show_visibility)
+        self.tbl_g.itemChanged.connect(self._on_group_item)
+        gv_l.addWidget(self.tbl_g, 1)
+        self.lbl_g_hint = QLabel("")
+        self.lbl_g_hint.setWordWrap(True)
+        gv_l.addWidget(self.lbl_g_hint)
+        rowb = QHBoxLayout()
+        b1 = QPushButton("Different symbols")
+        b1.setToolTip("Give each group a different symbol (useful for black and white figures)")
+        b1.clicked.connect(lambda: self._auto_symbols(True))
+        b2 = QPushButton("All circles")
+        b2.clicked.connect(lambda: self._auto_symbols(False))
+        b3 = QPushButton("New colors")
+        b3.setToolTip("Give every group a different color from the palette")
+        b3.clicked.connect(self._auto_colors)
+        for b in (b1, b2, b3):
+            rowb.addWidget(b)
+        if self.show_visibility:
+            b4 = QPushButton("Show all")
+            b4.clicked.connect(self._show_all)
+            rowb.addWidget(b4)
+        rowb.addStretch(1)
+        gv_l.addLayout(rowb)
+        split.addWidget(gl)
+
+        sl = QGroupBox("Samples")
+        sv_l = QVBoxLayout(sl)
+        self.txt_filter = QLineEdit()
+        self.txt_filter.setPlaceholderText("Filter by sample, dataset or group")
+        self.txt_filter.setClearButtonEnabled(True)
+        self.txt_filter.textChanged.connect(lambda *_: self._apply_filter())
+        sv_l.addWidget(self.txt_filter)
+        self.tbl_s = QTableWidget(0, 4)
+        self.tbl_s.setHorizontalHeaderLabels(["Sample", "Dataset", "Data label", "Group"])
+        self.tbl_s.verticalHeader().setVisible(False)
+        self.tbl_s.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tbl_s.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.tbl_s.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+        hs = self.tbl_s.horizontalHeader()
+        for c in range(4):
+            hs.setSectionResizeMode(c, QHeaderView.Stretch if c == 3 else QHeaderView.ResizeToContents)
+        self.tbl_s.itemChanged.connect(self._on_sample_item)
+        sv_l.addWidget(self.tbl_s, 1)
+        mv = QHBoxLayout()
+        self.lbl_move = QLabel("Move selected samples to:")
+        mv.addWidget(self.lbl_move)
+        self.cmb_target = QComboBox()
+        self.cmb_target.setEditable(True)
+        self.cmb_target.setMinimumWidth(170)
+        try:
+            self.cmb_target.lineEdit().setPlaceholderText("pick or type a new group")
+        except Exception:
+            pass
+        mv.addWidget(self.cmb_target, 1)
+        self.btn_move = QPushButton("Move")
+        self.btn_move.clicked.connect(self._move_selected)
+        mv.addWidget(self.btn_move)
+        sv_l.addLayout(mv)
+        rr = QHBoxLayout()
+        self.btn_reset = QPushButton("Back to data labels")
+        self.btn_reset.setToolTip("Every sample goes back to the group of its data label")
+        self.btn_reset.clicked.connect(self._reset_custom)
+        rr.addWidget(self.btn_reset)
+        rr.addStretch(1)
+        sv_l.addLayout(rr)
+        self.lbl_s_hint = QLabel("")
+        self.lbl_s_hint.setWordWrap(True)
+        sv_l.addWidget(self.lbl_s_hint)
+        split.addWidget(sl)
+        split.setSizes([560, 480])
+        root.addWidget(split, 1)
+
+        bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+        bb.accepted.connect(self._ok)
+        bb.rejected.connect(self.reject)
+        bb.button(QDialogButtonBox.Apply).clicked.connect(self._apply)
+        root.addWidget(bb)
+
+        self._rebuild()
+
+    # ---- model
+    def _grp(self, s):
+        return s["custom"] if self._mode == "custom" else s["label"]
+
+    def _groups(self):
+        """{key: [base, name, count]} in base order, then name order."""
+        tmp = {}
+        for s in self._samples:
+            name = self._grp(s)
+            k = _gkey(name, s["base"])
+            if k not in tmp:
+                tmp[k] = [s["base"], _norm_group_name(name), 0]
+            tmp[k][2] += 1
+        border = {"Tamiz": 0, "Laser": 1, "Híbrido": 2}
+        keys = sorted(tmp, key=lambda k: (border.get(tmp[k][0], 9), tmp[k][1]))
+        return {k: tmp[k] for k in keys}
+
+    def _ensure_style(self, key):
+        st = self._style.get(key)
+        if st is not None:
+            return st
+        o = self.owner
+        col = (getattr(o, "group_colors", None) or {}).get(key)
+        if not col:
+            col = _fw_next_palette_color([v["color"] for v in self._style.values()])
+        known = key in self._known
+        st = {
+            "color": col,
+            "marker": (getattr(o, "group_markers", None) or {}).get(key, "o"),
+            "show": True if (self._vis is None or not known) else (key in self._vis),
+            "env": True if (self._rib is None or not known) else (key in self._rib),
+        }
+        self._style[key] = st
+        return st
+
+    # ---- UI
+    def _rebuild(self, samples=True):
+        self._building = True
+        try:
+            groups = self._groups()
+            custom = self._mode == "custom"
+            self.tbl_g.setRowCount(len(groups))
+            for r, (k, (bk, name, cnt)) in enumerate(groups.items()):
+                st = self._ensure_style(k)
+                it = QTableWidgetItem("")
+                it.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
+                it.setCheckState(Qt.Checked if st["show"] else Qt.Unchecked)
+                it.setData(Qt.UserRole, k)
+                self.tbl_g.setItem(r, self.C_SHOW, it)
+
+                btn = QToolButton()
+                btn.setIcon(_fw_color_icon(st["color"], dpr=self._dpr))
+                btn.setIconSize(QSize(26, 16))
+                btn.setAutoRaise(True)
+                btn.setCursor(Qt.PointingHandCursor)
+                btn.setToolTip("Change the color of this group")
+                btn.clicked.connect(lambda _=False, key=k: self._pick_color(key))
+                self.tbl_g.setCellWidget(r, self.C_COLOR, btn)
+
+                cmb = QComboBox()
+                for m, mname in FW_MARKERS:
+                    cmb.addItem(fw_marker_icon(m, st["color"], 14, self._dpr), mname, m)
+                idx = max(0, cmb.findData(st["marker"]))
+                cmb.setCurrentIndex(idx)
+                cmb.currentIndexChanged.connect(lambda i, key=k, c=cmb: self._set_marker(key, c.itemData(i)))
+                self.tbl_g.setCellWidget(r, self.C_SYMBOL, cmb)
+
+                itn = QTableWidgetItem(name)
+                fl = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+                if custom:
+                    fl |= Qt.ItemIsEditable
+                itn.setFlags(fl)
+                itn.setData(Qt.UserRole, k)
+                itn.setToolTip(f"{name} ({base_name_display(bk)})" + ("\nDouble click to rename" if custom else ""))
+                itn.setIcon(fw_marker_icon(st["marker"], st["color"], 12, self._dpr))
+                self.tbl_g.setItem(r, self.C_NAME, itn)
+                itn.setText(f"{name}  ·  {base_name_display(bk)}")
+                itn.setData(Qt.UserRole + 1, name)
+
+                itc = QTableWidgetItem(str(cnt))
+                itc.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                itc.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.tbl_g.setItem(r, self.C_COUNT, itc)
+
+                ite = QTableWidgetItem("")
+                ite.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
+                ite.setCheckState(Qt.Checked if st["env"] else Qt.Unchecked)
+                ite.setData(Qt.UserRole, k)
+                ite.setToolTip("Draw a shaded envelope around this group (needs 3 or more samples)")
+                self.tbl_g.setItem(r, self.C_ENV, ite)
+
+            cur = self.cmb_target.currentText()
+            names = sorted({g[1] for g in groups.values()}, key=lambda x: x.lower())
+            self.cmb_target.clear()
+            self.cmb_target.addItems(names)
+            self.cmb_target.setEditText(cur if cur else "")
+
+            if samples:
+                self.tbl_s.setRowCount(len(self._samples))
+                for r, s in enumerate(self._samples):
+                    vals = [s["sid"], base_name_display(s["base"]), s["label"], self._grp(s)]
+                    for c, v in enumerate(vals):
+                        it = QTableWidgetItem(str(v))
+                        fl = Qt.ItemIsEnabled | Qt.ItemIsSelectable
+                        if c == 3 and custom:
+                            fl |= Qt.ItemIsEditable
+                        it.setFlags(fl)
+                        if c == 0:
+                            it.setData(Qt.UserRole, r)
+                        if c == 3:
+                            k = _gkey(self._grp(s), s["base"])
+                            stl = self._ensure_style(k)
+                            it.setIcon(fw_marker_icon(stl["marker"], stl["color"], 12, self._dpr))
+                            if custom and self._grp(s) != s["label"]:
+                                f = QFont(it.font())
+                                f.setBold(True)
+                                it.setFont(f)
+                        self.tbl_s.setItem(r, c, it)
+            else:
+                for r, s in enumerate(self._samples):
+                    it = self.tbl_s.item(r, 3)
+                    if it is not None:
+                        stl = self._ensure_style(_gkey(self._grp(s), s["base"]))
+                        it.setText(self._grp(s))
+                        it.setIcon(fw_marker_icon(stl["marker"], stl["color"], 12, self._dpr))
+            self._apply_filter()
+            for w in (self.lbl_move, self.cmb_target, self.btn_move, self.btn_reset):
+                w.setEnabled(custom)
+            n_custom = sum(1 for s in self._samples if s["custom"] != s["label"])
+            if custom:
+                self.lbl_s_hint.setText(
+                    "Select samples and move them to a group (pick one or type a new name), or double "
+                    f"click the Group cell of a sample. Samples outside their data label: {n_custom}.")
+                self.lbl_g_hint.setText("Double click a group name to rename it (same name = merge).")
+            else:
+                self.lbl_s_hint.setText("Groups come from the data labels. Choose \"Custom groups\" "
+                                        "above to change the group of any sample.")
+                self.lbl_g_hint.setText("Click the color to change it; pick a symbol from the list.")
+        finally:
+            self._building = False
+
+    def _apply_filter(self):
+        needle = self.txt_filter.text().strip().lower()
+        for r in range(self.tbl_s.rowCount()):
+            show = True
+            if needle:
+                show = any(needle in (self.tbl_s.item(r, c).text().lower() if self.tbl_s.item(r, c) else "")
+                           for c in range(4))
+            self.tbl_s.setRowHidden(r, not show)
+
+    def _later(self, samples=True):
+        QTimer.singleShot(0, lambda: self._rebuild(samples=samples))
+
+    # ---- actions
+    def _set_mode(self, mode):
+        if self._building:
+            return
+        self._mode = mode
+        self._later(True)
+
+    def _pick_color(self, key):
+        st = self._ensure_style(key)
+        c = QColorDialog.getColor(QColor(_fw_pp_color_name(st["color"])), self, "Group color")
+        if c.isValid():
+            st["color"] = c.name()
+            self._later(True)
+
+    def _set_marker(self, key, marker):
+        if self._building or not marker:
+            return
+        self._ensure_style(key)["marker"] = str(marker)
+        self._later(True)
+
+    def _auto_symbols(self, different):
+        for i, k in enumerate(self._groups()):
+            self._ensure_style(k)["marker"] = FW_MARKERS[i % len(FW_MARKERS)][0] if different else "o"
+        self._later(True)
+
+    def _auto_colors(self):
+        for i, k in enumerate(self._groups()):
+            self._ensure_style(k)["color"] = GROUP_COLORS[i % len(GROUP_COLORS)]
+        self._later(True)
+
+    def _show_all(self):
+        for k in self._groups():
+            self._ensure_style(k)["show"] = True
+        self._later(False)
+
+    def _on_group_item(self, it):
+        if self._building or it is None:
+            return
+        k = it.data(Qt.UserRole)
+        if not k:
+            return
+        col = it.column()
+        if col in (self.C_SHOW, self.C_ENV):
+            self._ensure_style(k)["show" if col == self.C_SHOW else "env"] = (it.checkState() == Qt.Checked)
+            return
+        if col == self.C_NAME and self._mode == "custom":
+            old = it.data(Qt.UserRole + 1)
+            new = it.text().split("  ·  ")[0].strip()
+            groups = self._groups()
+            if k not in groups:
+                return
+            bk = groups[k][0]
+            if not new or new == old:
+                self._later(False)
+                return
+            nk = _gkey(new, bk)
+            if nk not in self._style:
+                self._style[nk] = dict(self._ensure_style(k))
+            for s in self._samples:
+                if s["base"] == bk and _norm_group_name(self._grp(s)) == old:
+                    s["custom"] = new
+            self._later(True)
+
+    def _on_sample_item(self, it):
+        if self._building or it is None or it.column() != 3 or self._mode != "custom":
+            return
+        r = it.row()
+        if 0 <= r < len(self._samples):
+            s = self._samples[r]
+            s["custom"] = it.text().strip() or s["label"]
+            self._later(True)
+
+    def _move_selected(self):
+        target = self.cmb_target.currentText().strip()
+        if not target:
+            QMessageBox.information(self, "Groups", "Pick a group or type the name of a new group.")
+            return
+        rows = sorted({ix.row() for ix in self.tbl_s.selectionModel().selectedRows()})
+        rows = [r for r in rows if not self.tbl_s.isRowHidden(r)]
+        if not rows:
+            QMessageBox.information(self, "Groups", "Select one or more samples in the list first.")
+            return
+        for r in rows:
+            self._samples[r]["custom"] = target
+        self._later(True)
+
+    def _reset_custom(self):
+        for s in self._samples:
+            s["custom"] = s["label"]
+        self._later(True)
+
+    def _apply(self):
+        groups = self._groups()
+        for k in groups:
+            self._ensure_style(k)
+        if self.show_visibility and not any(self._style[k]["show"] for k in groups):
+            QMessageBox.information(self, "Groups", "At least one group must be shown in the plot.")
+            return False
+        o = self.owner
+        o.group_mode = self._mode
+        o.custom_groups = {f"{s['base']}|{s['sid']}": s["custom"] for s in self._samples if s["custom"] != s["label"]}
+        if not isinstance(getattr(o, "group_colors", None), dict):
+            o.group_colors = {}
+        if not isinstance(getattr(o, "group_markers", None), dict):
+            o.group_markers = {}
+        for k, st in self._style.items():
+            o.group_colors[k] = st["color"]
+            o.group_markers[k] = st["marker"]
+        o._update_all_groups_and_colors()
+        keys = list((getattr(o, "group_labels", None) or {}).keys())
+        if self.show_visibility:
+            o.selected_groups_xy = [k for k in keys if self._style.get(k, {}).get("show", True)]
+            o.selected_groups_ribbons = [k for k in keys if self._style.get(k, {}).get("env", True)]
+            self._vis = set(o.selected_groups_xy)
+            self._rib = set(o.selected_groups_ribbons)
+        o._fw_known_group_keys = list(keys)
+        self._known = set(keys)
+        o._fw_refresh_group_views()
+        return True
+
+    def _ok(self):
+        if self._apply():
+            self.accept()
+
+
+# ------------------------------------------------------------------ View plot window
+class FwXYViewDialog(QDialog):
+    """The plot exactly as it will be exported, with its size, quality and style controls."""
+
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+        self.setWindowTitle("Granulometric parameters plot — View and export")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowMinMaxButtonsHint)
+        self.setModal(False)
+        self._loading = False
+        self._rows = {}
+        self._row_keys = []
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(120)
+        self._timer.timeout.connect(self._render)
+        self._save_timer = QTimer(self)
+        self._save_timer.setSingleShot(True)
+        self._save_timer.setInterval(700)
+        self._save_timer.timeout.connect(lambda: _fw_save_xy_style(self.owner))
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(10, 10, 10, 10)
+        body = QHBoxLayout()
+        body.setSpacing(10)
+        root.addLayout(body, 1)
+
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("fwViewArea")
+        self.scroll.setAlignment(Qt.AlignCenter)
+        self.scroll.setWidgetResizable(False)
+        self.lbl_img = QLabel()
+        self.lbl_img.setAlignment(Qt.AlignCenter)
+        self.scroll.setWidget(self.lbl_img)
+        body.addWidget(self.scroll, 1)
+
+        side = QScrollArea()
+        side.setWidgetResizable(True)
+        side.setFixedWidth(372)
+        inner = QWidget()
+        lay = QVBoxLayout(inner)
+        lay.setContentsMargins(4, 0, 8, 0)
+        lay.setSpacing(10)
+        side.setWidget(inner)
+        body.addWidget(side)
+
+        # 1) size and quality
+        g1 = QGroupBox("Size and quality  (export)")
+        f1 = QFormLayout(g1)
+        self.sp_w = self._dspin(1.0, 100.0, 0.5, 1)
+        self.sp_h = self._dspin(1.0, 100.0, 0.5, 1)
+        self.cmb_unit = QComboBox()
+        self.cmb_unit.addItem("cm", "cm")
+        self.cmb_unit.addItem("in", "in")
+        hw = QHBoxLayout()
+        hw.addWidget(self.sp_w)
+        hw.addWidget(QLabel("×"))
+        hw.addWidget(self.sp_h)
+        hw.addWidget(self.cmb_unit)
+        f1.addRow("Width × height:", hw)
+        hr = QHBoxLayout()
+        for txt, ratio in (("Square", 1.0), ("4:3", 4 / 3), ("3:2", 1.5), ("16:9", 16 / 9)):
+            b = QPushButton(txt)
+            b.setToolTip("Keep the width and set the height for this shape")
+            b.clicked.connect(lambda _=False, r=ratio: self._set_ratio(r))
+            hr.addWidget(b)
+        bswap = QPushButton("⇄")
+        bswap.setToolTip("Swap width and height")
+        bswap.clicked.connect(self._swap)
+        hr.addWidget(bswap)
+        f1.addRow("Shape:", hr)
+        self.sp_dpi = QSpinBox()
+        self.sp_dpi.setRange(72, 1200)
+        self.sp_dpi.setSingleStep(50)
+        self.sp_dpi.setSuffix(" dpi")
+        self.sp_dpi.setToolTip("Quality (resolution) of PNG, TIFF and JPEG images. 300 dpi is the usual journal value.")
+        f1.addRow("Quality:", self.sp_dpi)
+        self.lbl_px = QLabel("")
+        f1.addRow("Image:", self.lbl_px)
+        lay.addWidget(g1)
+
+        # 2) points and groups
+        g2 = QGroupBox("Points and groups  (also in the main plot)")
+        f2 = QFormLayout(g2)
+        self.sp_ms = self._dspin(1.0, 40.0, 0.5, 1, " pt")
+        f2.addRow("Point size:", self.sp_ms)
+        self.sp_ew = self._dspin(0.0, 3.0, 0.05, 2, " pt")
+        f2.addRow("Outline:", self.sp_ew)
+        self.sp_al = self._dspin(0.1, 1.0, 0.05, 2)
+        f2.addRow("Opacity:", self.sp_al)
+        self.chk_env = QCheckBox("Envelopes")
+        self.chk_names = QCheckBox("Sample names")
+        he = QHBoxLayout()
+        he.addWidget(self.chk_env)
+        he.addWidget(self.chk_names)
+        he.addStretch(1)
+        f2.addRow(he)
+        self.grp_box = QWidget()
+        self.grp_grid = QGridLayout(self.grp_box)
+        self.grp_grid.setContentsMargins(0, 0, 0, 0)
+        self.grp_grid.setHorizontalSpacing(6)
+        self.grp_grid.setVerticalSpacing(4)
+        f2.addRow(self.grp_box)
+        bg = QPushButton("Groups…")
+        bg.setToolTip("Build the groups (data labels or custom), visibility and envelopes")
+        bg.clicked.connect(lambda: _fw_open_groups_dialog(self.owner, True, parent=self))
+        f2.addRow(bg)
+        lay.addWidget(g2)
+
+        # 3) text and legend
+        g3 = QGroupBox("Text and legend  (export)")
+        f3 = QFormLayout(g3)
+        self.chk_title = QCheckBox("Title")
+        self.txt_title = QLineEdit()
+        ht = QHBoxLayout()
+        ht.addWidget(self.chk_title)
+        ht.addWidget(self.txt_title, 1)
+        f3.addRow(ht)
+        self.sp_title = self._dspin(5.0, 40.0, 0.5, 1, " pt")
+        f3.addRow("Title size:", self.sp_title)
+        self.sp_label = self._dspin(5.0, 40.0, 0.5, 1, " pt")
+        f3.addRow("Axis titles:", self.sp_label)
+        self.sp_tick = self._dspin(5.0, 40.0, 0.5, 1, " pt")
+        f3.addRow("Axis numbers:", self.sp_tick)
+        self.sp_names = self._dspin(4.0, 30.0, 0.5, 1, " pt")
+        f3.addRow("Sample names:", self.sp_names)
+        self.chk_leg = QCheckBox("Legend")
+        self.chk_frame = QCheckBox("Frame")
+        self.chk_grid = QCheckBox("Grid")
+        hl = QHBoxLayout()
+        for w_ in (self.chk_leg, self.chk_frame, self.chk_grid):
+            hl.addWidget(w_)
+        hl.addStretch(1)
+        f3.addRow(hl)
+        self.cmb_loc = QComboBox()
+        for k, lbl in FW_LEGEND_LOCS:
+            self.cmb_loc.addItem(lbl, k)
+        f3.addRow("Legend position:", self.cmb_loc)
+        self.sp_leg = self._dspin(4.0, 30.0, 0.5, 1, " pt")
+        f3.addRow("Legend size:", self.sp_leg)
+        self.sp_cols = QSpinBox()
+        self.sp_cols.setRange(1, 8)
+        f3.addRow("Legend columns:", self.sp_cols)
+        lay.addWidget(g3)
+        lay.addStretch(1)
+
+        bottom = QHBoxLayout()
+        self.lbl_info = QLabel("")
+        bottom.addWidget(self.lbl_info, 1)
+        self.cmb_zoom = QComboBox()
+        self.cmb_zoom.addItem("Fit to window")
+        self.cmb_zoom.addItem("Actual pixels (100%)")
+        self.cmb_zoom.setToolTip("Fit: whole figure, same proportions. Actual pixels: the real resolution of the image")
+        self.cmb_zoom.currentIndexChanged.connect(lambda *_: self.schedule_render())
+        bottom.addWidget(self.cmb_zoom)
+        b_reset = QPushButton("Reset style")
+        b_reset.clicked.connect(self._reset_style)
+        bottom.addWidget(b_reset)
+        b_close = QPushButton("Close")
+        b_close.clicked.connect(self.close)
+        bottom.addWidget(b_close)
+        self.btn_export = QPushButton("Export…")
+        self.btn_export.setDefault(True)
+        self.btn_export.setStyleSheet("QPushButton { background-color: #2563eb; color: #ffffff; border: 1px solid #2563eb; "
+                                      "border-radius: 8px; padding: 6px 18px; font-weight: 600; }"
+                                      "QPushButton:hover { background-color: #1d4ed8; }")
+        self.btn_export.clicked.connect(lambda: fw_export_xy(self.owner, self))
+        bottom.addWidget(self.btn_export)
+        root.addLayout(bottom)
+
+        # connections
+        self.sp_w.valueChanged.connect(lambda v: self._set("width", float(v)))
+        self.sp_h.valueChanged.connect(lambda v: self._set("height", float(v)))
+        self.cmb_unit.currentIndexChanged.connect(lambda *_: self._unit_changed())
+        self.sp_dpi.valueChanged.connect(lambda v: self._set("dpi", int(v)))
+        self.sp_ms.valueChanged.connect(lambda v: self._set("marker_size", float(v)))
+        self.sp_ew.valueChanged.connect(lambda v: self._set("edge_width", float(v)))
+        self.sp_al.valueChanged.connect(lambda v: self._set("alpha", float(v)))
+        self.chk_env.toggled.connect(lambda v: self._set("show_envelopes", bool(v)))
+        self.chk_names.toggled.connect(self._names_toggled)
+        self.chk_title.toggled.connect(lambda v: self._set("show_title", bool(v)))
+        self.txt_title.textChanged.connect(lambda t: self._set("title_text", str(t)))
+        self.sp_title.valueChanged.connect(lambda v: self._set("title_size", float(v)))
+        self.sp_label.valueChanged.connect(lambda v: self._set("label_size", float(v)))
+        self.sp_tick.valueChanged.connect(lambda v: self._set("tick_size", float(v)))
+        self.sp_names.valueChanged.connect(lambda v: self._set("names_size", float(v)))
+        self.chk_leg.toggled.connect(lambda v: self._set("legend_show", bool(v)))
+        self.chk_frame.toggled.connect(lambda v: self._set("legend_frame", bool(v)))
+        self.chk_grid.toggled.connect(lambda v: self._set("grid", bool(v)))
+        self.cmb_loc.currentIndexChanged.connect(lambda i: self._set("legend_loc", str(self.cmb_loc.itemData(i))))
+        self.sp_leg.valueChanged.connect(lambda v: self._set("legend_size", float(v)))
+        self.sp_cols.valueChanged.connect(lambda v: self._set("legend_cols", int(v)))
+
+        try:
+            ag = QApplication.primaryScreen().availableGeometry()
+            self.resize(int(min(1280, ag.width() * 0.86)), int(min(900, ag.height() * 0.88)))
+        except Exception:
+            self.resize(1200, 820)
+        self._load_controls()
+        self._apply_theme()
+
+    def _dspin(self, lo, hi, step, dec, suffix=""):
+        sp = QDoubleSpinBox()
+        sp.setRange(lo, hi)
+        sp.setSingleStep(step)
+        sp.setDecimals(dec)
+        if suffix:
+            sp.setSuffix(suffix)
+        sp.setKeyboardTracking(False)
+        return sp
+
+    def _apply_theme(self):
+        dark = str(getattr(self.owner, "theme", "light")).lower() == "dark"
+        bg = "#1b1d1f" if dark else "#e6eaf0"
+        self.scroll.setStyleSheet(f"QScrollArea#fwViewArea {{ background: {bg}; border: none; border-radius: 8px; }}"
+                                  f"QScrollArea#fwViewArea > QWidget > QWidget {{ background: {bg}; }}")
+
+    def changeEvent(self, e):
+        try:
+            if e.type() == QEvent.StyleChange:
+                QTimer.singleShot(0, self._apply_theme)
+        except Exception:
+            pass
+        super().changeEvent(e)
+
+    # ---- controls <-> style
+    def _load_controls(self):
+        st = _fw_xy_style(self.owner)
+        self._loading = True
+        try:
+            self.cmb_unit.setCurrentIndex(1 if str(st["unit"]) == "in" else 0)
+            self.sp_w.setValue(float(st["width"]))
+            self.sp_h.setValue(float(st["height"]))
+            self.sp_dpi.setValue(int(st["dpi"]))
+            self.sp_ms.setValue(float(st["marker_size"]))
+            self.sp_ew.setValue(float(st["edge_width"]))
+            self.sp_al.setValue(float(st["alpha"]))
+            self.chk_env.setChecked(bool(st["show_envelopes"]))
+            self.chk_names.setChecked(bool(self.owner.chk_show_names.isChecked()) if hasattr(self.owner, "chk_show_names") else False)
+            self.chk_title.setChecked(bool(st["show_title"]))
+            self.txt_title.setText(str(st["title_text"]))
+            self.sp_title.setValue(float(st["title_size"]))
+            self.sp_label.setValue(float(st["label_size"]))
+            self.sp_tick.setValue(float(st["tick_size"]))
+            self.sp_names.setValue(float(st["names_size"]))
+            self.chk_leg.setChecked(bool(st["legend_show"]))
+            self.chk_frame.setChecked(bool(st["legend_frame"]))
+            self.chk_grid.setChecked(bool(st["grid"]))
+            self.cmb_loc.setCurrentIndex(max(0, self.cmb_loc.findData(str(st["legend_loc"]))))
+            self.sp_leg.setValue(float(st["legend_size"]))
+            self.sp_cols.setValue(int(st["legend_cols"]))
+        finally:
+            self._loading = False
+        self._update_px()
+
+    def _update_px(self):
+        st = _fw_xy_style(self.owner)
+        self.lbl_px.setText(_fw_xy_size_text(st).split(" · ")[-1])
+        self.lbl_info.setText("Exported image: " + _fw_xy_size_text(st))
+
+    def _set(self, key, value):
+        if self._loading:
+            return
+        st = _fw_xy_style(self.owner)
+        st[key] = value
+        self._update_px()
+        self._save_timer.start()
+        if key in FW_XY_SHARED_KEYS:
+            self.owner.plot_xy()           # main plot + this view
+        else:
+            self.schedule_render()
+
+    def _unit_changed(self):
+        if self._loading:
+            return
+        st = _fw_xy_style(self.owner)
+        new = str(self.cmb_unit.currentData())
+        if new == st.get("unit"):
+            return
+        f = 1 / 2.54 if new == "in" else 2.54
+        st["unit"] = new
+        st["width"] = round(float(st["width"]) * f, 2)
+        st["height"] = round(float(st["height"]) * f, 2)
+        self._load_controls()
+        self._save_timer.start()
+        self.schedule_render()
+
+    def _set_ratio(self, ratio):
+        st = _fw_xy_style(self.owner)
+        st["height"] = round(float(st["width"]) / float(ratio), 2)
+        self._load_controls()
+        self._save_timer.start()
+        self.schedule_render()
+
+    def _swap(self):
+        st = _fw_xy_style(self.owner)
+        st["width"], st["height"] = st["height"], st["width"]
+        self._load_controls()
+        self._save_timer.start()
+        self.schedule_render()
+
+    def _names_toggled(self, on):
+        if self._loading:
+            return
+        chk = getattr(self.owner, "chk_show_names", None)
+        if chk is not None and chk.isChecked() != bool(on):
+            chk.setChecked(bool(on))      # redraws the main plot and this view
+
+    def _reset_style(self):
+        keep = {k: _fw_xy_style(self.owner)[k] for k in ("width", "height", "unit", "dpi")}
+        self.owner.xy_style = dict(FW_XY_STYLE_DEFAULTS)
+        self.owner.xy_style.update(keep)
+        _fw_save_xy_style(self.owner)
+        self._load_controls()
+        self.owner.plot_xy()
+
+    # ---- groups (colors and symbols)
+    def _plotted_keys(self):
+        try:
+            xk = self.owner.cmb_x.currentText().strip()
+            yk = self.owner.cmb_y.currentText().strip()
+            seen = []
+            for p in self.owner._iter_points_for_plot(xk, yk, tab_name="xy"):
+                if p["gkey"] not in seen:
+                    seen.append(p["gkey"])
+            order = list((getattr(self.owner, "group_labels", None) or {}).keys())
+            return [k for k in order if k in seen] + [k for k in seen if k not in order]
+        except Exception:
+            return []
+
+    def _refresh_groups(self):
+        keys = self._plotted_keys()
+        colors = getattr(self.owner, "group_colors", None) or {}
+        markers = getattr(self.owner, "group_markers", None) or {}
+        labels = getattr(self.owner, "group_labels", None) or {}
+        try:
+            dpr = float(self.devicePixelRatioF())
+        except Exception:
+            dpr = 1.0
+        if keys != self._row_keys:
+            while self.grp_grid.count():
+                it = self.grp_grid.takeAt(0)
+                w_ = it.widget()
+                if w_ is not None:
+                    w_.hide()
+                    w_.deleteLater()
+            self._rows = {}
+            for r, k in enumerate(keys):
+                btn = QToolButton()
+                btn.setAutoRaise(True)
+                btn.setIconSize(QSize(26, 16))
+                btn.setCursor(Qt.PointingHandCursor)
+                btn.setToolTip("Change the color of this group")
+                btn.clicked.connect(lambda _=False, key=k: self._pick_color(key))
+                cmb = QComboBox()
+                for m, mname in FW_MARKERS:
+                    cmb.addItem(mname, m)
+                cmb.currentIndexChanged.connect(lambda i, key=k, c=cmb: self._set_marker(key, c.itemData(i)))
+                lbl = QLabel(str(labels.get(k, k)))
+                self.grp_grid.addWidget(btn, r, 0)
+                self.grp_grid.addWidget(cmb, r, 1)
+                self.grp_grid.addWidget(lbl, r, 2)
+                self._rows[k] = (btn, cmb, lbl)
+            self.grp_grid.setColumnStretch(2, 1)
+            self._row_keys = list(keys)
+        for k, (btn, cmb, lbl) in self._rows.items():
+            col = colors.get(k, GROUP_COLORS[0])
+            mk = markers.get(k, "o")
+            btn.setIcon(_fw_color_icon(col, dpr=dpr))
+            cmb.blockSignals(True)
+            for i, (m, _n) in enumerate(FW_MARKERS):
+                cmb.setItemIcon(i, fw_marker_icon(m, col, 14, dpr))
+            cmb.setCurrentIndex(max(0, cmb.findData(mk)))
+            cmb.blockSignals(False)
+            lbl.setText(str(labels.get(k, k)))
+
+    def _pick_color(self, key):
+        colors = getattr(self.owner, "group_colors", None) or {}
+        c = QColorDialog.getColor(QColor(_fw_pp_color_name(colors.get(key, GROUP_COLORS[0]))), self, "Group color")
+        if c.isValid():
+            self.owner.group_colors[key] = c.name()
+            QTimer.singleShot(0, self.owner._fw_refresh_group_views)
+
+    def _set_marker(self, key, marker):
+        if not marker:
+            return
+        if not isinstance(getattr(self.owner, "group_markers", None), dict):
+            self.owner.group_markers = {}
+        self.owner.group_markers[key] = str(marker)
+        QTimer.singleShot(0, self.owner._fw_refresh_group_views)
+
+    # ---- rendering
+    def refresh_from_owner(self):
+        chk = getattr(self.owner, "chk_show_names", None)
+        if chk is not None:
+            self._loading = True
+            try:
+                self.chk_names.setChecked(bool(chk.isChecked()))
+            finally:
+                self._loading = False
+        self._refresh_groups()
+        self.schedule_render()
+
+    def schedule_render(self):
+        self._timer.start()
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        self.schedule_render()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        if self.cmb_zoom.currentIndex() == 0:
+            self.schedule_render()
+
+    def _render(self):
+        if not self.isVisible():
+            return
+        st = _fw_xy_style(self.owner)
+        w_in, h_in = _fw_xy_size_in(st)
+        dpi = float(st.get("dpi", 300))
+        try:
+            dpr = max(1.0, float(self.scroll.devicePixelRatioF()))
+        except Exception:
+            dpr = 1.0
+        actual = self.cmb_zoom.currentIndex() == 1
+        if actual:
+            rdpi = dpi
+            disp_w = w_in * dpi / dpr
+        else:
+            vw = max(120, self.scroll.viewport().width() - 28)
+            vh = max(120, self.scroll.viewport().height() - 28)
+            disp_w = min(float(vw), vh * w_in / h_in)
+            rdpi = min(dpi, disp_w * dpr / w_in)
+        rdpi = max(20.0, rdpi)
+        try:
+            fig = _FwFigure(figsize=(w_in, h_in), dpi=rdpi)
+            canvas = _FwCanvasAgg(fig)
+            fw_draw_xy(self.owner, fig, st, export=True)
+            canvas.draw()
+            wpx, hpx = canvas.get_width_height()
+            buf = bytes(canvas.buffer_rgba())
+            img = QImage(buf, int(wpx), int(hpx), QImage.Format_RGBA8888).copy()
+        except Exception:
+            traceback.print_exc()
+            return
+        pm = QPixmap.fromImage(img)
+        if not actual:
+            tw = max(1, int(round(disp_w * dpr)))
+            if abs(pm.width() - tw) > 1:
+                pm = pm.scaledToWidth(tw, Qt.SmoothTransformation)
+        pm.setDevicePixelRatio(dpr)
+        self.lbl_img.setPixmap(pm)
+        self.lbl_img.resize(int(round(pm.width() / dpr)), int(round(pm.height() / dpr)))
+
+
+# ------------------------------------------------------------------ MainWindow methods (bound at the end of the file)
+def _fw_effective_group(self, base_key, sample, label):
+    """Group of a sample: its data label, or its custom group (Groups dialog)."""
+    if str(getattr(self, "group_mode", "labels")) == "custom":
+        cg = getattr(self, "custom_groups", None)
+        if cg:
+            try:
+                v = cg.get(f"{base_key_canon(base_key)}|{_fw_sample_id(sample)}")
+            except Exception:
+                v = None
+            if v not in (None, ""):
+                return v
+    return label
+
+
+def _fw_group_bases(self):
+    """[(base_key, params DataFrame, group column, sample column)] of the loaded datasets."""
+    out = []
+    for bk, attr in (("Tamiz", "param_results"), ("Laser", "param_results_laser"), ("Híbrido", "param_results_hybrid")):
+        df = getattr(self, attr, None)
+        if df is None or getattr(df, "empty", True):
+            continue
+        cols = list(df.columns)
+        gcol = "Group" if bk == "Laser" else getattr(self, "group_col", "Group")
+        if gcol not in cols and "Group" in cols:
+            gcol = "Group"
+        if bk == "Híbrido":
+            scol = next((c for c in ("Hybrid Sample", "Sample", "Tamiz Sample") if c in cols), cols[0])
+        else:
+            scol = "Sample" if "Sample" in cols else cols[0]
+        out.append((bk, df, gcol, scol))
+    return out
+
+
+def _fw_ensure_group_colors(self):
+    if not isinstance(getattr(self, "group_colors", None), dict):
+        self.group_colors = {}
+    keys = list((getattr(self, "group_labels", None) or {}).keys())
+    used = [self.group_colors[k] for k in keys if k in self.group_colors]
+    for k in keys:
+        if k not in self.group_colors:
+            c = _fw_next_palette_color(used)
+            self.group_colors[k] = c
+            used.append(c)
+
+
+def _fw_refresh_group_views(self):
+    for fn in ("update_console", "plot_xy", "plot_graphic"):
+        try:
+            f = getattr(self, fn, None)
+            if callable(f):
+                f()
+        except Exception:
+            traceback.print_exc()
+
+
+def _fw_open_groups_dialog(self, show_visibility=True, parent=None):
+    if not self._fw_group_bases():
+        QMessageBox.information(parent or self, "Groups", "Load a dataset first.")
+        return
+    try:
+        self._update_all_groups_and_colors()
+    except Exception:
+        pass
+    dlg = FwGroupsDialog(self, show_visibility=show_visibility, parent=parent or self)
+    dlg.exec_()
+
+
+def _fw_open_xy_view(self):
+    dlg = getattr(self, "_xy_view_dlg", None)
+    if dlg is None:
+        dlg = FwXYViewDialog(self)
+        self._xy_view_dlg = dlg
+    dlg.show()
+    dlg.raise_()
+    dlg.activateWindow()
+    dlg.refresh_from_owner()
+
+# endregion
+
+
+
 # region # === Block 7: MainWindow class – constructor, icon, and main menu (EN-only, no histogram) ===
 from PyQt5.QtWidgets import QApplication
 
@@ -1848,7 +4450,7 @@ class MainWindow(QMainWindow):
         self._root.setContentsMargins(6, 6, 6, 6)
         self._root.setSpacing(6)
 
-        self.tabs = QTabWidget(self._central)
+        self.tabs = FwTabWidget(self._central)
         self._root.addWidget(self.tabs)
 
         self.setCentralWidget(self._central)
@@ -1932,55 +4534,60 @@ class MainWindow(QMainWindow):
     # ---------- Groups/colors update ----------
     def _update_all_groups_and_colors(self):
         """
-        Collect all visible groups from loaded datasets (Sieve/Laser/Hybrid),
-        build self.groups (labels for legend/dialogs) and ensure:
-          - self.group_colors (dict by stable key _gkey)
-          - default selections (all visible)
+        Collect the groups of the loaded datasets (Sieve/Laser/Hybrid) using the
+        grouping chosen in the Groups dialog (data labels or custom groups), and ensure:
+          - self.group_labels / self.groups (legend and dialog labels, key order)
+          - self.group_colors (a different palette color for every new group)
+          - selections: groups the user hid stay hidden, new groups are shown
         """
-        def _gkey_safe(grp, base_key):
-            try:
-                return _gkey(grp, base_key)
-            except Exception:
-                return f"{str(grp)}::{str(base_key)}"
-
-        def _glabel_safe(grp, base_key):
-            try:
-                return _glabel(grp, base_key)
-            except Exception:
-                return f"{grp} ({base_name_display(base_key)})"
-
-        bases = []
-
-        if getattr(self, "param_results", None) is not None and not getattr(self, "param_results").empty:
-            bases.append(("Tamiz", self.param_results, getattr(self, "group_col", "Group")))
-
-        if getattr(self, "param_results_laser", None) is not None and not getattr(self, "param_results_laser").empty:
-            bases.append(("Laser", self.param_results_laser, "Group"))
-
-        if getattr(self, "param_results_hybrid", None) is not None and not getattr(self, "param_results_hybrid").empty:
-            bases.append(("Híbrido", self.param_results_hybrid, getattr(self, "group_col", "Group")))
-
-        labels = []
-        key_order = []
+        prev_known = getattr(self, "_fw_known_group_keys", None)
         self.group_labels = {}
-        for base_key, df, gcol in bases:
-            for grp in sorted(df[gcol].astype(str).unique()):
-                k = _gkey_safe(grp, base_key)
+        key_order, labels, counts = [], [], {}
+        for base_key, df, gcol, scol in self._fw_group_bases():
+            n = len(df)
+            gvals = _fw_pp_column_list(df, gcol) if gcol in df.columns else ["No Group"] * n
+            svals = _fw_pp_column_list(df, scol) if scol in df.columns else [None] * n
+            names = set()
+            for s, g in zip(svals, gvals):
+                eff = str(self._fw_effective_group(base_key, s, g))
+                names.add(eff)
+                k = _gkey(eff, base_key)
+                counts[k] = counts.get(k, 0) + 1
+            for grp in sorted(names):
+                k = _gkey(grp, base_key)
                 if k not in self.group_labels:
-                    lbl = _glabel_safe(grp, base_key)
+                    lbl = _glabel(grp, base_key)
                     self.group_labels[k] = lbl
                     key_order.append(k)
                     labels.append(lbl)
         self.groups = labels
+        self.group_counts = counts
 
-        if not hasattr(self, "group_colors") or self.group_colors is None:
+        if not isinstance(getattr(self, "group_colors", None), dict):
             self.group_colors = {}
-        for i, k in enumerate(key_order):
-            if k not in self.group_colors:
-                self.group_colors[k] = GROUP_COLORS[i % len(GROUP_COLORS)]
+        if not isinstance(getattr(self, "group_markers", None), dict):
+            self.group_markers = {}
+        self._fw_ensure_group_colors()
 
-        self.selected_groups_xy = list(key_order)
-        self.selected_groups_ribbons = list(key_order)
+        if prev_known is None:
+            self.selected_groups_xy = list(key_order)
+            self.selected_groups_ribbons = list(key_order)
+        else:
+            known = set(prev_known)
+            valid = set(key_order)
+            new_keys = [k for k in key_order if k not in known]
+
+            def _merge(cur):
+                if not isinstance(cur, (list, tuple, set)):
+                    return list(key_order)
+                kept = [k for k in cur if k in valid]
+                return kept + [k for k in new_keys if k not in kept]
+
+            self.selected_groups_xy = _merge(getattr(self, "selected_groups_xy", None))
+            self.selected_groups_ribbons = _merge(getattr(self, "selected_groups_ribbons", None))
+            if isinstance(getattr(self, "selected_groups_graphic", None), list) and self.selected_groups_graphic:
+                self.selected_groups_graphic = _merge(self.selected_groups_graphic)
+        self._fw_known_group_keys = list(key_order)
 
     # ---------- Tabs ----------
     def initUI_tabs(self):
@@ -2040,36 +4647,43 @@ class MainWindow(QMainWindow):
         h_controls.addWidget(self.chk_show_names)
 
         self.btn_filter_groups = QPushButton(tr("btn_filter_groups"))
-        self.btn_filter_groups.clicked.connect(self.select_groups_xy)
+        self.btn_filter_groups.setToolTip("Build the groups, and choose their colors, symbols and visibility")
+        self.btn_filter_groups.clicked.connect(lambda *_: self.select_groups_xy())
         h_controls.addWidget(self.btn_filter_groups)
 
         h_controls.addStretch()
 
+        self.btn_view_xy = QPushButton(tr("btn_view_plot"))
+        self.btn_view_xy.setToolTip("Open the plot in its own window, exactly as it will be exported")
+        self.btn_view_xy.clicked.connect(lambda *_: self.open_xy_view())
+        h_controls.addWidget(self.btn_view_xy)
+
         self.btn_export_xy = QPushButton(tr("btn_export_image"))
-        self.btn_export_xy.clicked.connect(lambda: self.export_canvas(self.canvas_xy))
+        self.btn_export_xy.setToolTip("Save the plot with the size and quality set in View plot")
+        self.btn_export_xy.clicked.connect(lambda *_: self.export_xy_plot())
         h_controls.addWidget(self.btn_export_xy)
 
         v_xy.addLayout(h_controls)
 
-        hdr_console = QHBoxLayout()
-        self.lbl_console = QLabel(tr("console_header"))
-        self.lbl_console.setStyleSheet("font-weight: bold;")
-        hdr_console.addWidget(self.lbl_console)
-        hdr_console.addStretch()
-
-        self.btn_export_params = QPushButton(tr("btn_export_params"))
+        # Granulometric parameters panel: modern table view (see Block 6B).
+        self.params_panel = GranuloParamsPanel(owner=self)
+        self.lbl_console = self.params_panel.lbl_title
+        self.btn_export_params = self.params_panel.btn_export
         self.btn_export_params.clicked.connect(self.export_params_to_excel)
-        hdr_console.addWidget(self.btn_export_params)
-        v_xy.addLayout(hdr_console)
-
-        self.txt_console = QTextEdit()
-        self.txt_console.setReadOnly(True)
-        self.txt_console.setMaximumHeight(190)
-        v_xy.addWidget(self.txt_console)
+        # Backward compatibility: older code / plugins may still use txt_console
+        self.txt_console = self.params_panel
 
         self.canvas_xy = FigureCanvas(plt.figure(figsize=(8, 4.5)))
-        self.canvas_xy.setFixedHeight(450)
-        v_xy.addWidget(self.canvas_xy)
+        self.canvas_xy.setMinimumHeight(220)
+        self.canvas_xy.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # Table (top) and plot (bottom): drag the divider between them to resize both
+        # (Block 6C). Double click on the divider restores the default sizes.
+        self.xy_splitter = FwSplitter(Qt.Vertical, owner=self, settings_key="xy_splitter_state", default_ratio=0.45)
+        self.xy_splitter.addWidget(self.params_panel)
+        self.xy_splitter.addWidget(self.canvas_xy)
+        self.xy_splitter.finish_setup()
+        v_xy.addWidget(self.xy_splitter, 1)
 
         self.tabs.addTab(self.tab_xy, tr("tab_xy"))
 
@@ -3369,32 +5983,30 @@ class MainWindow(QMainWindow):
             if gcol not in dfp.columns:
                 gcol = "Group" if "Group" in dfp.columns else None
 
-            for _, row in dfp.iterrows():
+            n = len(dfp)
+            xs = _fw_pp_column_list(dfp, x_key)
+            ys = _fw_pp_column_list(dfp, y_key)
+            ss = _fw_pp_column_list(dfp, scol)
+            gs = _fw_pp_column_list(dfp, gcol) if gcol is not None else ["No Group"] * n
+            markers = getattr(self, "group_markers", None) or {}
+            colors = self.group_colors if isinstance(getattr(self, "group_colors", None), dict) else {}
+            labels = getattr(self, "group_labels", None) or {}
+            for i in range(n):
                 try:
-                    x = float(row[x_key])
-                    y = float(row[y_key])
+                    x = float(xs[i])
+                    y = float(ys[i])
                 except Exception:
                     continue
                 if not (np.isfinite(x) and np.isfinite(y)):
                     continue
 
-                grp = row[gcol] if (gcol is not None and gcol in row.index) else "No Group"
+                grp = self._fw_effective_group(base_key, ss[i], gs[i])
                 gk = self._group_key(grp, base_key)
-                gl = self.group_labels.get(gk, self._group_label(grp, base_key)) if hasattr(self, "group_labels") else self._group_label(grp, base_key)
-
                 if selected_groups and (gk not in selected_groups):
                     continue
-
-                if hasattr(self, "group_colors") and isinstance(self.group_colors, dict):
-                    color = self.group_colors.get(gk, GROUP_COLORS[0])
-                else:
-                    color = GROUP_COLORS[0]
-
-                # visible sample label
-                try:
-                    sample_label = str(row[scol])
-                except Exception:
-                    sample_label = ""
+                gl = labels.get(gk, self._group_label(grp, base_key))
+                color = colors.get(gk, GROUP_COLORS[0])
+                sample_label = "" if ss[i] is None else str(ss[i])
 
                 yield {
                     "x": x,
@@ -3405,6 +6017,7 @@ class MainWindow(QMainWindow):
                     "gkey": gk,
                     "glabel": gl,
                     "color": color,
+                    "marker": markers.get(gk, "o"),
                 }
 
     # --------------------------- Console ---------------------------
@@ -3440,20 +6053,25 @@ class MainWindow(QMainWindow):
 
     def update_console(self):
         """
-        Shows parameter tables for loaded datasets.
+        Shows the parameter tables of the loaded datasets in the
+        "Granulometric parameters" panel (modern table view, Block 6B).
+        A plain-text copy is kept for compatibility (txt_console.toPlainText()).
         """
         if not hasattr(self, "txt_console"):
             return
 
+        datasets = []
         chunks = []
 
         df = getattr(self, "param_results", None)
         if df is not None and not df.empty:
             gcol = getattr(self, "group_col", "Group")
+            datasets.append(("Tamiz", df, gcol))
             chunks.append(self._format_params_table_text(f"[{base_name_display('Tamiz')}]", df, gcol))
 
         df = getattr(self, "param_results_laser", None)
         if df is not None and not df.empty:
+            datasets.append(("Laser", df, "Group"))
             chunks.append(self._format_params_table_text(f"[{base_name_display('Laser')}]", df, "Group"))
 
         df = getattr(self, "param_results_hybrid", None)
@@ -3461,84 +6079,49 @@ class MainWindow(QMainWindow):
             gcol = getattr(self, "group_col", "Group")
             if gcol not in df.columns and "Group" in df.columns:
                 gcol = "Group"
+            datasets.append(("Híbrido", df, gcol))
             chunks.append(self._format_params_table_text(f"[{base_name_display('Híbrido')}]", df, gcol))
 
-        if not chunks:
-            self.txt_console.setPlainText("No parameters available. Load a dataset first.")
-        else:
-            self.txt_console.setPlainText("\n".join(chunks))
+        legacy_text = "\n".join(chunks) if chunks else "No parameters available. Load a dataset first."
+
+        panel = getattr(self, "params_panel", None)
+        if panel is not None and hasattr(panel, "set_datasets"):
+            try:
+                panel.set_datasets(
+                    datasets,
+                    method_label=_fw_method_display_name(getattr(self, "current_method", "")),
+                    group_colors=getattr(self, "group_colors", None) or {},
+                    group_markers=getattr(self, "group_markers", None) or {},
+                    group_of=getattr(self, "_fw_effective_group", None),
+                    legacy_text=legacy_text,
+                )
+                return
+            except Exception:
+                traceback.print_exc()
+
+        try:
+            self.txt_console.setPlainText(legacy_text)
+        except Exception:
+            pass
 
     # --------------------------- XY plot ---------------------------
 
     def plot_xy(self):
+        """Main plot of the tab. Same drawing as View plot / export (Block 6D), sized to the window."""
         if not hasattr(self, "canvas_xy"):
             return
-
-        fig = self.canvas_xy.figure
-        fig.clear()
-        ax = fig.add_subplot(111)
-
-        xk = self.cmb_x.currentText().strip() if hasattr(self, "cmb_x") else "mean"
-        yk = self.cmb_y.currentText().strip() if hasattr(self, "cmb_y") else "sigma"
-
-        pts = list(self._iter_points_for_plot(xk, yk, tab_name="xy"))
-
-        if len(pts) == 0:
-            ax.text(0.5, 0.5, "No data to plot.", ha="center", va="center", transform=ax.transAxes)
-            ax.set_xlabel(self._axis_label_for_key(xk))
-            ax.set_ylabel(self._axis_label_for_key(yk))
-            ax.grid(True, alpha=0.25)
-            fig.tight_layout()
-            self.canvas_xy.draw_idle()
-            return
-
-        by_group = {}
-        for p in pts:
-            by_group.setdefault(p["gkey"], []).append(p)
-
-        selected_ribbons = set(getattr(self, "selected_groups_ribbons", []) or [])
-        for gk, arr in by_group.items():
-            if selected_ribbons and gk not in selected_ribbons:
-                continue
-            xs = np.array([a["x"] for a in arr], dtype=float)
-            ys = np.array([a["y"] for a in arr], dtype=float)
-            if xs.size >= 3:
-                try:
-                    plot_ribbon(ax, xs, ys, arr[0]["color"], alpha=0.18, width=0.08, smooth=12)
-                except Exception:
-                    pass
-
-        show_names = bool(self.chk_show_names.isChecked()) if hasattr(self, "chk_show_names") else False
-        for gk, arr in by_group.items():
-            xs = [a["x"] for a in arr]
-            ys = [a["y"] for a in arr]
-            color = arr[0]["color"]
-            label = arr[0]["glabel"]
-            ax.scatter(xs, ys, s=44, color=color, edgecolor="black", linewidth=0.45, alpha=0.95, label=label, zorder=3)
-
-            if show_names:
-                for a in arr:
-                    ax.annotate(
-                        a["sample"], (a["x"], a["y"]),
-                        xytext=(4, 4), textcoords="offset points",
-                        fontsize=8, alpha=0.9
-                    )
-
-        ax.set_xlabel(self._axis_label_for_key(xk))
-        ax.set_ylabel(self._axis_label_for_key(yk))
-        ax.set_title(tr("tab_xy"))
-        ax.grid(True, alpha=0.25)
-
-        handles, labels = ax.get_legend_handles_labels()
-        uniq = {}
-        for h, l in zip(handles, labels):
-            if l not in uniq:
-                uniq[l] = h
-        if uniq:
-            ax.legend(list(uniq.values()), list(uniq.keys()), fontsize=8, frameon=True, loc="best")
-
-        fig.tight_layout()
+        try:
+            fw_draw_xy(self, self.canvas_xy.figure, _fw_xy_style(self), export=False)
+        except Exception:
+            traceback.print_exc()
         self.canvas_xy.draw_idle()
+        dlg = getattr(self, "_xy_view_dlg", None)
+        if dlg is not None:
+            try:
+                if dlg.isVisible():
+                    dlg.refresh_from_owner()
+            except Exception:
+                pass
 
     # --------------------------- Export helpers ---------------------------
 
@@ -3565,7 +6148,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, tr("error"), f"Could not save figure:\n{e}")
 
     def save_current_tab(self):
-        self.export_canvas(self.canvas_xy)
+        self.export_xy_plot()
 
     def export_params_to_excel(self):
         start_dir = getattr(self, "last_dir", get_script_dir())
@@ -3642,7 +6225,7 @@ def export_canvas(self, canvas):
     def _suggest_name():
         try:
             if canvas is getattr(self, "canvas_xy", None):
-                return os.path.join(start_dir, "xy_plot.png")
+                return os.path.join(start_dir, "granulometric_parameters_plot.png")
         except Exception:
             pass
         return os.path.join(start_dir, "figure.png")
@@ -3680,7 +6263,7 @@ def export_canvas(self, canvas):
 
 
 def save_current_tab(self):
-    self.export_canvas(self.canvas_xy)
+    self.export_xy_plot()
 
 
 def choose_method(self):
@@ -7467,7 +10050,7 @@ def _patched_save_current_tab(self):
     current = self.tabs.currentWidget()
 
     if current is getattr(self, "tab_xy", None):
-        self.export_canvas(self.canvas_xy)
+        self.export_xy_plot()
     elif current is getattr(self, "tab_hist", None):
         self.export_canvas(self.canvas_hist)
 
@@ -9761,6 +12344,10 @@ def install_graphic_support(MainWindow):
                 else:
                     grp = "No Group"
 
+                try:
+                    grp = self._fw_effective_group(base_key, sample_value, grp)
+                except Exception:
+                    pass
                 gk = self._group_key(grp, base_key)
                 if selected_groups and gk not in selected_groups:
                     continue
@@ -9776,6 +12363,7 @@ def install_graphic_support(MainWindow):
                     "gkey": gk,
                     "glabel": gl,
                     "color": color,
+                    "marker": (getattr(self, "group_markers", None) or {}).get(gk, "o"),
                     "blocks_pct": blocks_pct,
                     "lapilli_pct": lapilli_pct,
                     "ash_pct": ash_pct,
@@ -9856,7 +12444,8 @@ def install_graphic_support(MainWindow):
                 ys = [a["y"] for a in arr]
                 color = arr[0]["color"]
                 label = arr[0]["glabel"]
-                ax.scatter(xs, ys, s=42, color=color, edgecolor="black", linewidth=0.45, alpha=0.95, label=label, zorder=25)
+                mk = arr[0].get("marker", "o") or "o"
+                ax.scatter(xs, ys, s=_fw_marker_s(mk, 6.5), marker=mk, color=color, edgecolor="black", linewidth=0.45, alpha=0.95, label=label, zorder=25)
                 if bool(self.graphic_style.get("show_sample_names", False)):
                     for a in arr:
                         ax.annotate(a["sample"], (a["x"], a["y"]), xytext=(4, 4), textcoords="offset points", fontsize=8, alpha=0.9, zorder=30)
@@ -11196,7 +13785,7 @@ def _fw_build_componentry_tab(self):
         pass
     outer.addWidget(self.componentry_view, 1)
 
-    # Componentry is deliberately added last: XY Plot, Histogram, Graphic,
+    # Componentry is deliberately added last: Granulometric parameters, Histogram, Graphic,
     # Componentry.
     self.tabs.addTab(self.tab_componentry, "Componentry")
 
@@ -11318,6 +13907,115 @@ def _fw_v18_mainwindow_init(self, *args, **kwargs):
         except Exception:
             pass
 MainWindow.__init__ = _fw_v18_mainwindow_init
+
+# =========================================================
+# Groups, symbols, View plot and exact export (Block 6D) + project persistence
+# =========================================================
+MainWindow._fw_effective_group = _fw_effective_group
+MainWindow._fw_group_bases = _fw_group_bases
+MainWindow._fw_ensure_group_colors = _fw_ensure_group_colors
+MainWindow._fw_refresh_group_views = _fw_refresh_group_views
+MainWindow.open_xy_view = _fw_open_xy_view
+MainWindow.export_xy_plot = lambda self: fw_export_xy(self, self)
+MainWindow.select_groups_xy = lambda self: _fw_open_groups_dialog(self, True)
+MainWindow.edit_colors = lambda self: _fw_open_groups_dialog(self, False)
+
+_fw_v19_old_collect_project_dict = _fw_collect_project_dict
+def _fw_collect_project_dict(self):
+    data = _fw_v19_old_collect_project_dict(self)
+    fw = data.setdefault("fw", {})
+    fw["group_mode"] = str(getattr(self, "group_mode", "labels") or "labels")
+    fw["custom_groups"] = dict(getattr(self, "custom_groups", None) or {})
+    fw["group_markers"] = dict(getattr(self, "group_markers", None) or {})
+    fw["xy_style"] = dict(_fw_xy_style(self))
+    if hasattr(self, "chk_show_names"):
+        fw["xy_show_names"] = bool(self.chk_show_names.isChecked())
+    return data
+
+
+_fw_v19_old_apply_project_dict = _fw_apply_project_dict
+def _fw_apply_project_dict(self, data):
+    fw = (data.get("fw", {}) or {}) if isinstance(data, dict) else {}
+    self.group_mode = "custom" if fw.get("group_mode") == "custom" else "labels"
+    cg = fw.get("custom_groups")
+    self.custom_groups = {str(k): str(v) for k, v in cg.items()} if isinstance(cg, dict) else {}
+    gm = fw.get("group_markers")
+    self.group_markers = {str(k): str(v) for k, v in gm.items()} if isinstance(gm, dict) else {}
+    if isinstance(fw.get("xy_style"), dict):
+        st = dict(FW_XY_STYLE_DEFAULTS)
+        st.update({k: v for k, v in fw["xy_style"].items() if k in FW_XY_STYLE_DEFAULTS})
+        self.xy_style = st
+    if "xy_show_names" in fw and hasattr(self, "chk_show_names"):
+        self.chk_show_names.blockSignals(True)
+        self.chk_show_names.setChecked(bool(fw.get("xy_show_names")))
+        self.chk_show_names.blockSignals(False)
+    self._fw_known_group_keys = None
+    _fw_v19_old_apply_project_dict(self, data)
+    try:
+        self._fw_ensure_group_colors()
+        self._fw_known_group_keys = list((getattr(self, "group_labels", None) or {}).keys())
+        dlg = getattr(self, "_xy_view_dlg", None)
+        if dlg is not None:
+            dlg._load_controls()
+        self._fw_refresh_group_views()
+    except Exception:
+        traceback.print_exc()
+
+
+# =========================================================
+# Mouse wheel never changes values (whole program, plugins included)
+# =========================================================
+# Spin boxes, combo boxes, sliders and tab bars ignore the wheel; the wheel scrolls
+# the panel/list that contains them instead (or zooms, in the plots that zoom).
+# Installed once on the QApplication, so it covers every window of FW, Componentry,
+# Graphic, GdeInput and FractalAnalysis that runs inside this program.
+from PyQt5.QtCore import QObject as _FwQObject
+from PyQt5.QtWidgets import (
+    QAbstractSpinBox as _FwSpin, QComboBox as _FwCombo, QAbstractSlider as _FwSlider,
+    QScrollBar as _FwScrollBar, QTabBar as _FwTabBarW, QAbstractScrollArea as _FwScrollArea
+)
+
+
+class _FwNoWheelValues(_FwQObject):
+    def eventFilter(self, obj, event):
+        try:
+            if event.type() != QEvent.Wheel:
+                return False
+            if not isinstance(obj, (_FwSpin, _FwCombo, _FwSlider, _FwTabBarW)) or isinstance(obj, _FwScrollBar):
+                return False
+            # pass the wheel to the nearest scrollable container
+            p = obj.parentWidget()
+            while p is not None and not isinstance(p, _FwScrollArea):
+                p = p.parentWidget()
+            if p is not None:
+                d = event.angleDelta()
+                horizontal = abs(d.x()) > abs(d.y())
+                bar = p.horizontalScrollBar() if horizontal else p.verticalScrollBar()
+                if bar is not None and bar.isVisible():
+                    QApplication.sendEvent(bar, event)
+            return True        # the widget never receives it: its value does not change
+        except Exception:
+            return False
+
+
+def _fw_install_no_wheel_values():
+    app = QApplication.instance()
+    if app is None or getattr(app, "_fw_no_wheel_values", None) is not None:
+        return
+    flt = _FwNoWheelValues(app)
+    app.installEventFilter(flt)
+    app._fw_no_wheel_values = flt
+
+
+_fw_v19_old_mainwindow_init = MainWindow.__init__
+def _fw_v19_mainwindow_init(self, *args, **kwargs):
+    try:
+        _fw_install_no_wheel_values()
+    except Exception:
+        pass
+    _fw_v19_old_mainwindow_init(self, *args, **kwargs)
+MainWindow.__init__ = _fw_v19_mainwindow_init
+
 
 # =========================================================
 # Entry point
