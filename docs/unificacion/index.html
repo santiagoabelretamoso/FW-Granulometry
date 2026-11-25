@@ -163,6 +163,39 @@ footer .nw{white-space:nowrap}
 .figure{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
 .figure svg{display:block;width:100%;height:auto}
 .figure .empty{margin:0;padding:60px 16px;text-align:center;color:var(--faint);font-size:.9rem}
+
+.btn:disabled{opacity:.5;cursor:default;transform:none}
+.hyb{margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hyb .chips{margin-top:0}
+.chip button{border:0;background:none;padding:0 0 0 2px;margin:0;color:var(--faint);cursor:pointer;font:inherit;font-size:1.05rem;line-height:1}
+.chip button:hover{color:var(--err)}
+.tbl{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:440px;background:#fff;overscroll-behavior:contain}
+.tbl table{border-collapse:separate;border-spacing:0;width:100%;font-size:.84rem;font-variant-numeric:tabular-nums}
+.tbl th{position:sticky;top:0;z-index:1;background:#f6f9fc;color:var(--muted);font-weight:700;font-size:.78rem;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+.tbl td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line2);color:var(--ink);white-space:nowrap}
+.tbl .l{text-align:left}
+.tbl td.b{font-weight:700}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody tr:hover td{background:#f8fbfe}
+.tbl .empty{margin:0;padding:40px 16px;text-align:center;color:var(--faint);font-size:.9rem}
+.picker{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1 1 300px}
+.pk{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:.82rem;font-weight:700;color:var(--ink);cursor:pointer;user-select:none;-webkit-user-select:none;max-width:100%}
+.pk input{margin:0;accent-color:#0a8cff}
+.pk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk em{font-style:normal;font-weight:500;color:var(--faint);font-size:.76rem}
+.pk:has(input:checked){background:var(--soft);border-color:#9ccbf0}
+.pk:has(input:focus-visible){outline:3px solid #1592ff;outline-offset:2px}
+.figure svg circle[data-phi]{cursor:pointer}
+.checks{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
+.ck{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;font-weight:700;color:var(--muted);cursor:pointer;user-select:none;-webkit-user-select:none}
+.ck input{margin:0;accent-color:#0a8cff}
+.note{margin:10px 0 0;font-size:.84rem;color:var(--muted)}
+.note.warn{color:#9a5b00}
+.stats{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:#fbfdff;min-width:0}
+.stat span{display:block;font-size:.74rem;font-weight:700;color:var(--muted)}
+.stat b{display:block;margin-top:2px;font-size:1.02rem;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat.main b{font-size:1.3rem;color:#c2410c}
 </style>
 </head>
 <body>
@@ -237,6 +270,7 @@ footer .nw{white-space:nowrap}
       <label class="field"><span>φ*</span><select id="sel-cut"></select></label>
     </div>
     <p class="mdesc" id="mdesc"></p>
+    <div class="hyb"><button type="button" class="btn" id="hyb-save" data-i18n="hybSave">Guardar unificada</button><div class="chips" id="hyb-list"></div></div>
   </section>
 
   <section class="card" id="card-hist" aria-labelledby="t-hist">
@@ -251,6 +285,31 @@ footer .nw{white-space:nowrap}
     </div>
     <div class="figure" id="figure"></div>
   </section>
+  <section class="card" id="card-params" aria-labelledby="t-params">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">5</span>
+      <div class="ttl"><h2 id="t-params" data-i18n="params">Parámetros granulométricos</h2><p class="hint" data-i18n="paramsHint">Todas las muestras cargadas, con percentiles en φ</p></div>
+      <div class="tools">
+        <label class="field inline"><span data-i18n="fParams">Parámetros</span><select id="sel-pm2"><option value="folkward">Folk &amp; Ward (1957)</option><option value="inman">Inman (1952)</option><option value="trask">Trask (1932)</option></select></label>
+        <button type="button" class="btn" id="dl-xlsx" data-i18n="dlXlsx">Descargar Excel</button>
+      </div>
+    </div>
+    <div class="tbl" id="ptable"></div>
+  </section>
+
+  <section class="card" id="card-curves" aria-labelledby="t-curves">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">6</span>
+      <div class="ttl"><h2 id="t-curves" data-i18n="curves">Curva acumulada y comparación</h2><p class="hint" data-i18n="curvesHint">Marcá una muestra o varias para superponerlas</p></div>
+      <div class="seg" role="group" aria-label="Curva"><button type="button" data-cmode="cum" data-i18n="vCum">Acumulada</button><button type="button" data-cmode="freq" data-i18n="vFreq">Frecuencia</button></div>
+    </div>
+    <div class="hbar">
+      <div class="picker" id="pick-curves"></div>
+      <div class="tools"><button type="button" class="btn quiet" id="pk-all" data-i18n="all">Todas</button><button type="button" class="btn quiet" id="pk-none" data-i18n="none">Ninguna</button><button type="button" class="btn" id="dl-png-c" data-i18n="dlPng">Descargar PNG</button></div>
+    </div>
+    <div class="figure" id="fig-curves"></div>
+  </section>
+<!--@@STAGE2HTML@@-->
 </main>
 
 <footer>
@@ -1314,16 +1373,16 @@ footer .nw{white-space:nowrap}
     if (!ui.view || !avail[ui.view]) ui.view = ["hybrid", "sieve", "laser"].filter(function (k) { return avail[k]; })[0] || null;
     Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) { var k = b.getAttribute("data-view"); b.disabled = !avail[k]; b.setAttribute("aria-pressed", k === ui.view ? "true" : "false"); });
     var m = $("#sel-method").value, pm = $("#sel-pm").value, info = "";
-    var hyb = null, cut = +$("#sel-cut").value;
+    var hyb = null;
     if (both) {
-      var S = sieveRowsOf($("#sel-sieve").value), Lr = laserRowsOf($("#sel-laser").value);
-      hyb = m === "m2" ? hybridM2(S, Lr, cut) : hybridM1(S, Lr, cut);
+      hyb = curHybrid();
       info = L("d_" + m);
       if (hyb) info += " k = " + fmtNum(hyb.meta.k, 4) + (m === "m2" ? " · α = " + fmtNum(hyb.meta.alpha, 4) : "");
     }
+    ui.hyb = hyb;
     $("#mdesc").textContent = both ? info : L("needBoth");
     var rows = null, title = "";
-    if (ui.view === "hybrid" && hyb) { rows = hyb.rows; title = $("#sel-sieve").value + "-A"; }
+    if (ui.view === "hybrid" && hyb) { rows = hyb.rows; title = hyb.name; }
     else if (ui.view === "sieve") { rows = sieveRowsOf($("#sel-sieve").value); title = $("#sel-sieve").value; }
     else if (ui.view === "laser") { rows = laserRowsOf($("#sel-laser").value); title = $("#sel-laser").value; }
     var fig = $("#figure");
@@ -1331,6 +1390,7 @@ footer .nw{white-space:nowrap}
     ui.title = title;
     fig.innerHTML = ui.svg || '<p class="empty">' + escT(L("noData")) + "</p>";
     $("#dl-png").disabled = !ui.svg;
+    renderExtras();
   }
   var fontsReady = document.fonts ? Promise.all([document.fonts.load('400 16px "DejaVu Sans FW"'), document.fonts.load('700 16px "DejaVu Sans FW"')]).catch(function () {}) : Promise.resolve();
   function update() { fontsReady.then(function () { refreshSelects(); render(); }); }
@@ -1338,26 +1398,373 @@ footer .nw{white-space:nowrap}
   ["#sel-sieve", "#sel-laser", "#sel-method", "#sel-cut", "#sel-pm"].forEach(function (s) { $(s).addEventListener("change", s === "#sel-sieve" ? update : render); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) { b.addEventListener("click", function () { ui.view = b.getAttribute("data-view"); render(); }); });
   // PNG a 300 dpi (como el FW al exportar)
-  $("#dl-png").addEventListener("click", function () {
-    if (!ui.svg) return;
-    var sc = 3, c = document.createElement("canvas"), img = new Image(), url;
-    Promise.all(["../assets/fonts/dejavu-sans.woff2", "../assets/fonts/dejavu-sans-bold.woff2"].map(function (u) {
+  $("#dl-png").addEventListener("click", function () { savePng(ui.svg, 1100, 700, ui.title || "histograma"); });
+
+  /* ------------------------------------------------------------------ */
+  /* Ampliación: unificadas guardadas, parámetros, curvas, diagramas,    */
+  /* componentes y dimensión fractal                                     */
+  /* ------------------------------------------------------------------ */
+  var T2 = {
+    es: {
+      hybSave: "Guardar unificada", hybDel: "Quitar",
+      params: "Parámetros granulométricos", paramsHint: "Todas las muestras cargadas, con percentiles en φ",
+      dlXlsx: "Descargar Excel", colSample: "Muestra", colBase: "Datos", colGroup: "Grupo",
+      noSamples: "Cargá datos para ver los parámetros.",
+      curves: "Curva acumulada y comparación", curvesHint: "Marcá una muestra o varias para superponerlas",
+      vCum: "Acumulada", vFreq: "Frecuencia", all: "Todas", none: "Ninguna",
+      noSel: "Marcá al menos una muestra.", noCurves: "Cargá datos para ver las curvas.",
+      diag: "Diagramas de clasificación", diagHint: "Mφ vs σφ con los campos del FW",
+      fDiagram: "Diagrama", showNames: "Nombres", noPoints: "Cargá datos para ver los puntos.",
+      comp: "Componentes", compHint: "Conteos por fracción, en barras apiladas",
+      fGsd: "Granulometría", noGsd: "Ninguna (100 % por fracción)", vWt: "%Wt", v100: "100 % por fracción",
+      fmtComp: "<b>Fila 1:</b> φ en la columna A y el nombre de cada componente en las columnas siguientes. <b>Desde la fila 2:</b> el φ de cada fracción y los granos contados de cada componente (también sirven porcentajes). Cada fracción se lleva a 100 % y se escala con el peso de esa fracción en la granulometría elegida, igual que en Componentry.",
+      phComp: ["φ", "Componente 1", "Componente 2", "Componente 3"],
+      compEmpty: "Escribí o pegá los conteos (o tocá Ejemplo) para ver las barras.",
+      compMissing: function (l) { return "Estas fracciones no están en la granulometría elegida y no se dibujan: φ " + l + "."; },
+      exComp: ["Pómez", "Líticos", "Cristales"],
+      fractal: "Dimensión fractal", fractalHint: "Método de masa (Perugini y Kueppers 2012; Paredes-Mariño et al. 2017)",
+      fSample: "Muestra", fdReset: "Usar todos los puntos",
+      fdTip: "Tocá un punto del gráfico para sacarlo del ajuste o volver a usarlo.",
+      fdSE: "Error estándar", fdCI: "IC 95 %", fdN: "Puntos", fdV: "Pendiente v", fdP: "p (fragmentación)", fdChk: "Control",
+      fdOK: "Cumple R² > 0,9 y EE ≤ 0,1", fdCheck: "Revisar: ", fdFew: "Hacen falta al menos 2 puntos válidos para el ajuste.",
+      fdOut: "D queda fuera de 0 a 3: p no está definida (Perugini et al. 2011, ec. 19).", fdNoData: "Elegí una muestra con datos."
+    },
+    en: {
+      hybSave: "Save merged sample", hybDel: "Remove",
+      params: "Grain-size parameters", paramsHint: "All loaded samples, with percentiles in φ",
+      dlXlsx: "Download Excel", colSample: "Sample", colBase: "Data", colGroup: "Group",
+      noSamples: "Load data to see the parameters.",
+      curves: "Cumulative curve and comparison", curvesHint: "Tick one sample or several to overlay them",
+      vCum: "Cumulative", vFreq: "Frequency", all: "All", none: "None",
+      noSel: "Tick at least one sample.", noCurves: "Load data to see the curves.",
+      diag: "Classification diagrams", diagHint: "Mφ vs σφ with the FW fields",
+      fDiagram: "Diagram", showNames: "Names", noPoints: "Load data to see the points.",
+      comp: "Components", compHint: "Counts per fraction, as stacked bars",
+      fGsd: "Grain size", noGsd: "None (100% per fraction)", vWt: "%Wt", v100: "100% per fraction",
+      fmtComp: "<b>Row 1:</b> φ in column A and the name of each component in the next columns. <b>From row 2:</b> the φ of each fraction and the grains counted for each component (percents also work). Each fraction is taken to 100% and scaled by that fraction's weight in the chosen grain-size sample, as in Componentry.",
+      phComp: ["φ", "Component 1", "Component 2", "Component 3"],
+      compEmpty: "Type or paste the counts (or press Example) to see the bars.",
+      compMissing: function (l) { return "These fractions are not in the chosen grain-size sample and are not drawn: φ " + l + "."; },
+      exComp: ["Pumice", "Lithics", "Crystals"],
+      fractal: "Fractal dimension", fractalHint: "Mass method (Perugini and Kueppers 2012; Paredes-Mariño et al. 2017)",
+      fSample: "Sample", fdReset: "Use all points",
+      fdTip: "Click a point on the chart to leave it out of the fit or use it again.",
+      fdSE: "Standard error", fdCI: "95% CI", fdN: "Points", fdV: "Slope v", fdP: "p (fragmentation)", fdChk: "Check",
+      fdOK: "Meets R² > 0.9 and SE ≤ 0.1", fdCheck: "Check: ", fdFew: "At least 2 valid points are needed for the fit.",
+      fdOut: "D is outside 0 to 3: p is undefined (Perugini et al. 2011, Eq. 19).", fdNoData: "Choose a sample with data."
+    }
+  };
+  ["es", "en"].forEach(function (l) { Object.keys(T2[l]).forEach(function (k) { T[l][k] = T2[l][k]; }); });
+
+  var GROUP_COLORS = ["#52b788", "#4895ef", "#e76f51", "#ffd60a", "#adb5bd", "#9b5de5", "#c1121f", "#1d3557", "#f15bb5", "#8d6e63", "#00b4d8", "#ff9f1c"];
+  var PCTS = [5, 16, 25, 50, 75, 84, 95];
+  var BASE_EN = { sieve: "Sieve", laser: "Laser", hybrid: "Hybrid" };
+
+  function baseName(b) { return b === "sieve" ? L("sieve") : (b === "laser" ? L("laser") : L("vHybrid")); }
+  // _norm_group_name del FW
+  function normGroup(g) { var s = g === null || g === undefined ? "" : String(g).trim(); return (!s || /^(nan|none|null)$/i.test(s)) ? NO_GROUP : s; }
+  function decTxt(v, nd) { if (!isFinite(v)) return ""; var s = pyFixed(v, nd).replace(/^-/, "−"); return lang === "es" ? s.replace(".", ",") : s; }
+  function safeName(s) { return String(s || "figura").replace(/[\\/:*?"<>|]/g, "_"); }
+
+  /* Unificadas guardadas (Tamiz-A, Tamiz-B, ... como en el FW) */
+  state.hybrids = [];
+  function nextHybName(sv) {
+    var used = {};
+    state.hybrids.forEach(function (h) { used[h.name] = true; });
+    for (var i = 0; i < 702; i++) {
+      var suf = i < 26 ? String.fromCharCode(65 + i) : String.fromCharCode(64 + Math.floor(i / 26)) + String.fromCharCode(65 + i % 26);
+      if (!used[sv + "-" + suf]) return sv + "-" + suf;
+    }
+    return sv + "-?";
+  }
+  function curHybrid() {
+    if (!(state.sieve && state.laser && state.laser.binned)) return null;
+    var sv = $("#sel-sieve").value, lv = $("#sel-laser").value, m = $("#sel-method").value, c = $("#sel-cut").value;
+    if (!sv || !lv || c === "") return null;
+    var key = JSON.stringify([sv, lv, m, c]);
+    for (var i = 0; i < state.hybrids.length; i++) if (state.hybrids[i].key === key) return state.hybrids[i];
+    var res = m === "m2" ? hybridM2(sieveRowsOf(sv), laserRowsOf(lv), +c) : hybridM1(sieveRowsOf(sv), laserRowsOf(lv), +c);
+    if (!res) return null;
+    return { key: key, name: nextHybName(sv), sieve: sv, laser: lv, method: m, cut: +c, rows: res.rows, meta: res.meta, g: normGroup(state.sieve.groups[sv]), saved: false };
+  }
+  // Las unificadas guardadas dependen de los datos: se borran al cargar datos nuevos
+  document.addEventListener("fw:data", function () { state.hybrids = []; });
+
+  function allSamples() {
+    var out = [], S = state.sieve, Lz = state.laser && state.laser.binned ? state.laser : null;
+    if (S) S.samples.forEach(function (s) { out.push({ id: "s\u0001" + s, name: String(s), base: "sieve", g: normGroup(S.groups[s]), rows: sieveRowsOf(s) }); });
+    if (Lz) Lz.samples.forEach(function (s) { out.push({ id: "l\u0001" + s, name: String(s), base: "laser", g: normGroup(Lz.groups[s]), rows: laserRowsOf(s) }); });
+    var hs = state.hybrids.slice();
+    if (ui.hyb && !ui.hyb.saved) hs.push(ui.hyb);
+    hs.forEach(function (h) { out.push({ id: "h\u0001" + h.key, name: h.name, base: "hybrid", g: h.g, rows: h.rows, h: h }); });
+    return out;
+  }
+  function sampleLabel(s, list) {
+    var dup = list.filter(function (x) { return x.name === s.name; }).length > 1;
+    return dup ? s.name + " (" + baseName(s.base) + ")" : s.name;
+  }
+
+  function renderHybList() {
+    var h = ui.hyb, btn = $("#hyb-save");
+    btn.disabled = !h || h.saved;
+    $("#hyb-list").innerHTML = state.hybrids.map(function (x, i) {
+      return '<span class="chip">' + escT(x.name) + " <em>" + escT(x.sieve + " + " + x.laser + " · M" + x.method.slice(1) + " · φ* " + phiTxt(x.cut)) + '</em><button type="button" data-hdel="' + i + '" aria-label="' + esc(L("hybDel") + " " + x.name) + '" title="' + esc(L("hybDel")) + '">×</button></span>';
+    }).join("");
+  }
+  $("#hyb-save").addEventListener("click", function () { var h = ui.hyb; if (!h || h.saved) return; h.saved = true; state.hybrids.push(h); render(); });
+  $("#hyb-list").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-hdel]"); if (!b) return;
+    state.hybrids.splice(+b.getAttribute("data-hdel"), 1);
+    render();
+  });
+
+  /* Percentiles (interp_percentile del FW, con el mismo orden que calculate_parameters) */
+  function calcPerc(phiIn, wIn) {
+    var out = {}, it = [];
+    PCTS.forEach(function (t) { out[t] = NaN; });
+    phiIn.forEach(function (p, i) { if (isFinite(p) && isFinite(wIn[i])) it.push([p, wIn[i], i]); });
+    if (!it.length || !(nansum(it.map(function (q) { return q[1]; })) > 0)) return out;
+    it.sort(function (a, b) { return (a[0] - b[0]) || (a[2] - b[2]); });
+    var phi = it.map(function (q) { return q[0]; }), cum = cumDist(it.map(function (q) { return q[1]; }));
+    if (!cum.some(isFinite)) return out;
+    PCTS.forEach(function (t) { out[t] = pctl(phi, cum, t); });
+    return out;
+  }
+  function paramsOf(s, pm) {
+    var phis = s.rows.map(function (r) { return r.phi; }), w = ws(s.rows);
+    return { p: calcParams(phis, w, pm), q: calcPerc(phis, w) };
+  }
+
+  /* 5. Tabla de parámetros */
+  function renderParams(list) {
+    var host = $("#ptable"), pm = $("#sel-pm").value;
+    $("#sel-pm2").value = pm;
+    $("#dl-xlsx").disabled = !list.length;
+    if (!list.length) { host.innerHTML = '<p class="empty">' + escT(L("noSamples")) + "</p>"; return; }
+    var head = [L("colSample"), L("colBase"), L("colGroup"), "Mφ", "Mdφ", "σφ", "Skφ", "Kφ"].concat(PCTS.map(function (t) { return "φ" + t; }));
+    var h = ["<table><thead><tr>" + head.map(function (x, i) { return "<th" + (i < 3 ? ' class="l"' : "") + ' scope="col">' + escT(x) + "</th>"; }).join("") + "</tr></thead><tbody>"];
+    list.forEach(function (s) {
+      var r = paramsOf(s, pm), v = [r.p.mean, r.p.median, r.p.sigma, r.p.skewness, r.p.kurtosis].concat(PCTS.map(function (t) { return r.q[t]; }));
+      h.push('<tr><td class="l b">' + escT(s.name) + '</td><td class="l">' + escT(baseName(s.base)) + '</td><td class="l">' + escT(s.g) + "</td>" + v.map(function (x) { return "<td>" + decTxt(x, 3) + "</td>"; }).join("") + "</tr>");
+    });
+    h.push("</tbody></table>");
+    host.innerHTML = h.join("");
+  }
+  function stamp() {
+    var d = new Date(); function z(n) { return (n < 10 ? "0" : "") + n; }
+    return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()) + " " + z(d.getHours()) + ":" + z(d.getMinutes()) + ":" + z(d.getSeconds());
+  }
+  // export_params_to_excel del FW: hoja Meta y, por base, parámetros y datos
+  $("#dl-xlsx").addEventListener("click", function () {
+    var list = allSamples(), pm = $("#sel-pm").value, btn = this;
+    if (!list.length) return;
+    btn.disabled = true;
+    loadXLSX().then(function () {
+      var X = window.XLSX, wb = X.utils.book_new();
+      function n(v) { return isFinite(v) ? v : null; }
+      X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([["field", "value"], ["export_time", stamp()], ["method", pm]]), "Meta");
+      [["sieve", "Sieve"], ["laser", "Laser"], ["hybrid", "Hybrid"]].forEach(function (b) {
+        var part = list.filter(function (s) { return s.base === b[0]; });
+        if (!part.length) return;
+        var hy = b[0] === "hybrid";
+        var head = ["Sample", "Group", "median", "sigma", "skewness", "kurtosis", "mean"].concat(PCTS.map(function (t) { return "phi" + t; }));
+        if (hy) head = head.concat(["Tamiz Sample", "Laser Sample", "Method", "phi*"]);
+        var aoa = [head], data = [["phi", "Sample", "wt", "Group"]];
+        part.forEach(function (s) {
+          var r = paramsOf(s, pm), row = [s.name, s.g, n(r.p.median), n(r.p.sigma), n(r.p.skewness), n(r.p.kurtosis), n(r.p.mean)].concat(PCTS.map(function (t) { return n(r.q[t]); }));
+          if (hy) row = row.concat([s.h.sieve, s.h.laser, "M" + s.h.method.slice(1), s.h.cut]);
+          aoa.push(row);
+          s.rows.forEach(function (d) { data.push([n(d.phi), s.name, n(d.w), s.g]); });
+        });
+        X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(aoa), b[1] + "_Params");
+        X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet(data), b[1] + "_Data");
+      });
+      X.writeFile(wb, "granulometric_parameters.xlsx");
+    }).catch(function () {}).then(function () { btn.disabled = false; });
+  });
+  $("#sel-pm2").addEventListener("change", function () { $("#sel-pm").value = this.value; render(); });
+
+  /* PNG a 300 dpi para todas las figuras */
+  var fontCss = null;
+  function getFontCss() {
+    if (!fontCss) fontCss = Promise.all(["../assets/fonts/dejavu-sans.woff2", "../assets/fonts/dejavu-sans-bold.woff2"].map(function (u) {
       return fetch(u).then(function (r) { return r.arrayBuffer(); }).then(function (b) { var a = new Uint8Array(b), s = ""; for (var i = 0; i < a.length; i += 32768) s += String.fromCharCode.apply(null, a.subarray(i, i + 32768)); return btoa(s); });
     })).then(function (b) {
-      var css = '<style>@font-face{font-family:"DejaVu Sans FW";font-weight:400;src:url(data:font/woff2;base64,' + b[0] + ')}@font-face{font-family:"DejaVu Sans FW";font-weight:700;src:url(data:font/woff2;base64,' + b[1] + ")}</style>";
-      var s = ui.svg.replace(/^(<svg[^>]*>)/, "$1" + css);
-      url = URL.createObjectURL(new Blob([s], { type: "image/svg+xml" }));
+      return '<style>@font-face{font-family:"DejaVu Sans FW";font-weight:400;src:url(data:font/woff2;base64,' + b[0] + ')}@font-face{font-family:"DejaVu Sans FW";font-weight:700;src:url(data:font/woff2;base64,' + b[1] + ")}</style>";
+    }).catch(function () { fontCss = null; return ""; });
+    return fontCss;
+  }
+  function savePng(svg, W, H, name) {
+    if (!svg) return;
+    getFontCss().then(function (css) {
+      var s = svg.replace(/^(<svg[^>]*>)/, "$1" + css), sc = 3, c = document.createElement("canvas"), img = new Image();
+      var url = URL.createObjectURL(new Blob([s], { type: "image/svg+xml" }));
       img.onload = function () {
         setTimeout(function () {
-          c.width = 1100 * sc; c.height = 700 * sc;
+          c.width = W * sc; c.height = H * sc;
           c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
           URL.revokeObjectURL(url);
-          c.toBlob(function (bl) { var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = (ui.title || "histograma").replace(/[\\/:*?"<>|]/g, "_") + ".png"; document.body.appendChild(a); a.click(); a.remove(); });
+          c.toBlob(function (bl) { var a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = safeName(name) + ".png"; document.body.appendChild(a); a.click(); a.remove(); });
         }, 60);
       };
       img.src = url;
     });
+  }
+
+  /* Pequeñas piezas de dibujo comunes */
+  function svgOpen(W, H, fam) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" font-family="' + fam.replace(/"/g, "&quot;") + '" style="white-space:pre"><rect width="' + W + '" height="' + H + '" fill="#fff"/>';
+  }
+  function F(v) { return (Math.round(v * 100) / 100).toString(); }
+  // texto de varias líneas centrado (como matplotlib con va="center")
+  function multiText(s, x, y, size, color, bold) {
+    var ls = String(s).split("\n"), t = tm("lp", size, bold), lh = t.px * 1.2, o = [];
+    var y0 = y - (ls.length - 1) * lh / 2;
+    ls.forEach(function (line, i) { o.push(place(line, size, bold, x, y0 + i * lh, "center", "center_baseline", color).svg); });
+    return o.join("");
+  }
+  // leyenda al estilo matplotlib (borderpad 0.4, labelspacing 0.5, handlelength 2, handletextpad 0.8)
+  function legendBox(items, size, box, loc, frame, color) {
+    if (!items.length) return "";
+    var px = size * PT, bp = 0.4 * px, sp = 0.5 * px, hl = 2 * px, tp = 0.8 * px, bap = 0.5 * px, rowH = tm("lp", size, false).h;
+    var tw = 0;
+    items.forEach(function (it) { tw = Math.max(tw, tm(it.label, size, false).w); });
+    var w = 2 * bp + hl + tp + tw, h = 2 * bp + items.length * rowH + (items.length - 1) * sp;
+    var lx = /l$/.test(loc) ? box.x0 + bap : box.x1 - bap - w, ly = /^u/.test(loc) ? box.yT + bap : box.yB - bap - h, o = [];
+    if (frame) o.push('<rect x="' + F(lx) + '" y="' + F(ly) + '" width="' + F(w) + '" height="' + F(h) + '" rx="' + F(0.2 * px) + '" fill="#fff" fill-opacity="0.8" stroke="#cccccc" stroke-width="' + F(PT) + '"/>');
+    items.forEach(function (it, i) {
+      var cy = ly + bp + i * (rowH + sp) + rowH / 2;
+      o.push(it.handle(lx + bp, cy, hl));
+      o.push(place(it.label, size, false, lx + bp + hl + tp, cy, "left", "center_baseline", color || "#000").svg);
+    });
+    return o.join("");
+  }
+  function sqMarker(x, y, stroke) { return '<rect x="' + (Math.floor(x + 0.5) - 4) + '" y="' + (Math.floor(y + 0.5) - 4) + '" width="8" height="8" fill="#fff" stroke="' + stroke + '" stroke-width="' + (1.26 * PT).toFixed(3) + '"/>'; }
+
+  /* 6. Curva acumulada / frecuencia, una o varias muestras (estilo del histograma del FW) */
+  function prepSeries(rows) {
+    var d = sumByPhi(finiteRows(rows)), pos = [];
+    d.forEach(function (r, i) { if (r.w > 0) pos.push(i); });
+    return pos.length ? d.slice(pos[0], pos[pos.length - 1] + 1) : [];
+  }
+  function svgCurves(items, mode, title, prm) {
+    var W = 1100, H = 700, x0 = 132, x1 = 1012, yT = 112, yB = 588, TL = 7 * PT, PAD = 10.5 * PT, LP = 4 * PT;
+    var ser = items.map(function (it) { var d = prepSeries(it.rows); return { label: it.label, color: it.color, d: d, cum: cumDist(ws(d)) }; }).filter(function (s) { return s.d.length; });
+    if (!ser.length) return "";
+    var allPhi = [];
+    ser.forEach(function (s) { s.d.forEach(function (r) { allPhi.push(r.phi); }); });
+    var lo = Math.min.apply(null, allPhi), hi = Math.max.apply(null, allPhi), step = histStep(allPhi), bw = Math.max(0.01, 0.92 * step);
+    var tk = niceTicks(lo, hi, step).filter(function (v) { return lo - 1e-9 <= v && v <= hi + 1e-9; });
+    if (!tk.length || !isClose(tk[0], lo)) tk.unshift(lo);
+    if (!isClose(tk[tk.length - 1], hi)) tk.push(hi);
+    var xa = lo - bw / 2, xb = hi + bw / 2, pad = Math.max(Math.max(Math.abs(xb - xa), 1e-9) * 0.008, bw * 0.10, 1e-9), xl0 = xa - pad, xl1 = xb + pad;
+    var cum = mode !== "freq", ytop, yl, ylab;
+    if (cum) { ytop = 102; yl = [0, 20, 40, 60, 80, 100]; ylab = yl.map(String); }
+    else {
+      var ymax = 0;
+      ser.forEach(function (s) { s.d.forEach(function (r) { if (r.w > ymax) ymax = r.w; }); });
+      if (!isFinite(ymax) || ymax <= 0) ymax = 1;
+      ytop = ymax * 1.18; yl = maxNTicks(0, ytop, 9); ylab = scalarLabels(yl);
+    }
+    function X(v) { return x0 + (v - xl0) * (x1 - x0) / (xl1 - xl0); }
+    function Y(v) { return yB - v * (yB - yT) / ytop; }
+    function sn(v) { return Math.floor(v + 0.5); }
+    var o = [svgOpen(W, H, '"DejaVu Sans FW", "DejaVu Sans", Verdana, sans-serif')];
+    var tick = ' stroke="#000" stroke-width="' + (1.8 * PT).toFixed(3) + '" fill="none"', minL = x0 - TL, maxB = yB + TL, rt = ytop * 1e-10;
+    yl.forEach(function (v, i) {
+      if (!(v >= -rt && v <= ytop + rt)) return;
+      var yy = sn(Y(v)) + 0.5;
+      o.push('<path d="M' + (sn(x0) + 0.5) + " " + yy + "H" + (sn(x0) - 9.5) + '"' + tick + "/>");
+      var t = place(ylab[i], 11, false, x0 - PAD, Y(v), "right", "center_baseline");
+      o.push(t.svg); minL = Math.min(minL, t.x0);
+    });
+    tk.forEach(function (v) {
+      var xx = sn(X(v)) + 0.5;
+      o.push('<path d="M' + xx + " " + (sn(yB) + 0.5) + "V" + (sn(yB) + 10.5) + '"' + tick + "/>");
+      var t = place(fmtNum(v, 2), 11, false, X(v), yB + PAD, "center", "top");
+      o.push(t.svg); maxB = Math.max(maxB, t.y1);
+    });
+    o.push(place("PHI (Φ)", 16, true, (x0 + x1) / 2, maxB + LP, "center", "top").svg);
+    var yt = cum ? "%Wt cumulative frequency" : "%Wt", tl = tm(yt, 16, true);
+    o.push(tEl(yt, tl.px, true, minL - LP - tl.d, (yT + yB) / 2 + tl.w / 2, "#000", true));
+    var sp = ' stroke="#000" stroke-width="' + (2 * PT).toFixed(3) + '" stroke-linecap="square" fill="none"';
+    o.push('<path d="M' + (sn(x0) + 0.5) + " " + (sn(yB) + 0.5) + "V" + (sn(yT) + 0.5) + '"' + sp + "/>");
+    o.push('<path d="M' + (sn(x0) + 0.5) + " " + (sn(yB) + 0.5) + "H" + (sn(x1) + 0.5) + '"' + sp + "/>");
+    ser.forEach(function (s) {
+      var ys = cum ? s.cum : ws(s.d), pts = [];
+      s.d.forEach(function (r, i) { if (isFinite(ys[i])) pts.push(X(r.phi).toFixed(2) + " " + Y(ys[i]).toFixed(2)); });
+      if (pts.length) o.push('<path d="M' + pts.join("L") + '" fill="none" stroke="' + s.color + '" stroke-width="' + ((cum ? 1.8 : 1.4) * PT).toFixed(3) + '" stroke-linejoin="round" stroke-linecap="square"/>');
+      s.d.forEach(function (r, i) {
+        if (!isFinite(ys[i])) return;
+        o.push(cum ? sqMarker(X(r.phi), Y(ys[i]), s.color) : '<circle cx="' + F(X(r.phi)) + '" cy="' + F(Y(ys[i])) + '" r="' + F(2.25 * PT) + '" fill="' + s.color + '"/>');
+      });
+    });
+    if (prm && ser.length === 1) {
+      var lines = [];
+      if (isFinite(prm.sigma)) lines.push("σ: " + fmtNum(prm.sigma));
+      if (isFinite(prm.kurtosis)) lines.push("K: " + fmtNum(prm.kurtosis));
+      if (isFinite(prm.median)) lines.push("Md: " + fmtNum(prm.median));
+      if (isFinite(prm.mean)) lines.push("M: " + fmtNum(prm.mean));
+      if (isFinite(prm.skewness)) lines.push("Sk: " + fmtNum(prm.skewness));
+      var ty = 0, axn = x0 + 0.10 * (x1 - x0), ayn = yB - 0.88 * (yB - yT);
+      lines.forEach(function (s, i) {
+        var t = tm(s, 12, false);
+        ty = i === 0 ? -(t.h - t.d) : ty - Math.max(t.lpa * 1.2, (t.h - t.d) * 1.2);
+        o.push(tEl(s, t.px, false, axn, ayn - ty, "#666666"));
+        ty -= t.d;
+      });
+    }
+    if (ser.length > 1) {
+      o.push(legendBox(ser.map(function (s) {
+        return { label: s.label, handle: function (x, y, hl) {
+          return '<path d="M' + F(x) + " " + F(y) + "H" + F(x + hl) + '" stroke="' + s.color + '" stroke-width="' + ((cum ? 1.8 : 1.4) * PT).toFixed(3) + '"/>' + (cum ? sqMarker(x + hl / 2, y, s.color) : '<circle cx="' + F(x + hl / 2) + '" cy="' + F(y) + '" r="' + F(2.25 * PT) + '" fill="' + s.color + '"/>');
+        } };
+      }), 12, { x0: x0, x1: x1, yT: yT, yB: yB }, cum ? "ul" : "ur", true));
+    }
+    if (title) o.push(place(title, 24, true, (x0 + x1) / 2, yT - 14 * PT, "center", "baseline").svg);
+    o.push("</svg>");
+    return o.join("");
+  }
+  ui.cmode = "cum";
+  function renderCurves(list) {
+    var host = $("#pick-curves"), ids = list.map(function (s) { return s.id; });
+    var had = ui.curSel ? ui.curSel.length : -1;
+    ui.curSel = (ui.curSel || []).filter(function (id) { return ids.indexOf(id) >= 0; });
+    if (list.length && !ui.curSel.length && had !== 0) {
+      var def = list.filter(function (s) { return s.base === "hybrid" && !(s.h && s.h.saved); })[0] || list[0];
+      ui.curSel = [def.id];
+    }
+    host.innerHTML = list.map(function (s) {
+      return '<label class="pk"><input type="checkbox" value="' + esc(s.id) + '"' + (ui.curSel.indexOf(s.id) >= 0 ? " checked" : "") + "><span>" + escT(s.name) + "</span><em>" + escT(baseName(s.base)) + "</em></label>";
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cmode]"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-cmode") === ui.cmode ? "true" : "false"); });
+    var sel = list.filter(function (s) { return ui.curSel.indexOf(s.id) >= 0; });
+    var items = sel.map(function (s, i) { return { label: sampleLabel(s, sel), rows: s.rows, color: sel.length > 1 ? GROUP_COLORS[i % GROUP_COLORS.length] : "#000000" }; });
+    var prm = sel.length === 1 ? calcParams(sel[0].rows.map(function (r) { return r.phi; }), ws(sel[0].rows), $("#sel-pm").value) : null;
+    ui.csvg = sel.length ? svgCurves(items, ui.cmode, sel.length === 1 ? sel[0].name : "", prm) : "";
+    ui.ctitle = sel.length === 1 ? sel[0].name + (ui.cmode === "freq" ? (lang === "es" ? " frecuencia" : " frequency") : (lang === "es" ? " acumulada" : " cumulative")) : (ui.cmode === "freq" ? "comparacion-frecuencia" : "comparacion-acumulada");
+    $("#fig-curves").innerHTML = ui.csvg || '<p class="empty">' + escT(L(list.length ? "noSel" : "noCurves")) + "</p>";
+    $("#dl-png-c").disabled = !ui.csvg;
+    $("#pk-all").disabled = $("#pk-none").disabled = !list.length;
+  }
+  $("#pick-curves").addEventListener("change", function () {
+    ui.curSel = Array.prototype.map.call(this.querySelectorAll("input:checked"), function (x) { return x.value; });
+    renderExtras();
   });
+  $("#pk-all").addEventListener("click", function () { ui.curSel = allSamples().map(function (s) { return s.id; }); renderExtras(); });
+  $("#pk-none").addEventListener("click", function () { ui.curSel = []; renderExtras(); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-cmode]"), function (b) { b.addEventListener("click", function () { ui.cmode = b.getAttribute("data-cmode"); renderExtras(); }); });
+  $("#dl-png-c").addEventListener("click", function () { savePng(ui.csvg, 1100, 700, ui.ctitle); });
+
+  /*@@STAGE2@@*/
+
+  function renderExtras() {
+    var list = allSamples();
+    renderHybList();
+    renderParams(list);
+    renderCurves(list);
+    /*@@STAGE2CALL@@*/
+  }
 
   /* ------------------------------------------------------------------ */
   /* Idioma                                                              */
@@ -1382,7 +1789,7 @@ footer .nw{white-space:nowrap}
   applyLang(lang, false);
 
   // Funciones expuestas para las verificaciones contra el FW original
-  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser, calcParams: calcParams, hybridM1: hybridM1, hybridM2: hybridM2, svgHistogram: svgHistogram };
+  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser, calcParams: calcParams, hybridM1: hybridM1, hybridM2: hybridM2, svgHistogram: svgHistogram, calcPerc: calcPerc, svgCurves: svgCurves, allSamples: allSamples /*@@CORE2@@*/ };
 })();
 </script>
 </body>
