@@ -196,6 +196,23 @@ footer .nw{white-space:nowrap}
 .stat span{display:block;font-size:.74rem;font-weight:700;color:var(--muted)}
 .stat b{display:block;margin-top:2px;font-size:1.02rem;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .stat.main b{font-size:1.3rem;color:#c2410c}
+.stat.calc{position:relative;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+.stat.calc span{padding-right:18px}
+.stat.calc:hover,.stat.calc:focus-visible,.stat.calc[aria-expanded="true"]{border-color:#9cc3e6;box-shadow:0 0 0 3px rgba(6,103,191,.12);outline:0}
+.stat.calc .ico{position:absolute;top:9px;right:9px;width:15px;height:15px;color:var(--faint)}
+.stat.calc:hover .ico,.stat.calc:focus-visible .ico,.stat.calc[aria-expanded="true"] .ico{color:var(--accent)}
+.pop{position:absolute;z-index:60;width:340px;max-width:calc(100vw - 16px);background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px -16px rgba(11,37,64,.38);padding:10px 14px 12px;color:var(--text)}
+.pop[hidden]{display:none}
+.pop .ph{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pop .ph b{font-size:.92rem;color:var(--ink)}
+.pop .x{border:0;background:none;width:28px;height:28px;margin-right:-6px;border-radius:8px;cursor:pointer;color:var(--muted);display:inline-flex;align-items:center;justify-content:center}
+.pop .x:hover{background:var(--soft);color:var(--ink)}
+.pop .pd{margin:0 0 4px;font-size:.78rem;line-height:1.35;color:var(--muted)}
+.pop svg{display:block;width:100%;height:auto}
+.pop .eq{margin-top:4px;display:grid;gap:2px;font-size:.84rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pop .eq div{white-space:nowrap;overflow-x:auto}
+.pop .eq sup{font-size:.68em;line-height:0}
+.pop .nt{margin:6px 0 0;font-size:.74rem;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -1508,7 +1525,7 @@ footer .nw{white-space:nowrap}
       fSample: "Muestra", fdReset: "Usar todos los puntos",
       fdTip: "Tocá un punto del gráfico para sacarlo del ajuste o volver a usarlo.",
       fdSE: "Error estándar", fdCI: "IC 95 %", fdN: "Puntos", fdV: "Pendiente v", fdP: "p (fragmentación)", fdChk: "Control",
-      fdOK: "Cumple R² > 0,9 y EE ≤ 0,1", fdCheck: "Revisar: ", fdFew: "Hacen falta al menos 2 puntos válidos para el ajuste.",
+      fdOK: "Cumple R² > 0,9 y EE ≤ 0,1", fdPopTip: "Ver de dónde sale", fdPopX: "Cerrar", fdPopD: "Probabilidad de que cada fragmento se vuelva a romper en cada etapa. Va de 1/8 (D = 0) a 1 (D = 3).", fdPopN: "v es la pendiente de la recta del gráfico. Perugini et al. (2011), ec. 19.", fdPopOut: "D fuera de 0–3: p no está definido.", fdCheck: "Revisar: ", fdFew: "Hacen falta al menos 2 puntos válidos para el ajuste.",
       fdOut: "D queda fuera de 0 a 3: p no está definida (Perugini et al. 2011, ec. 19).", fdNoData: "Elegí una muestra con datos."
     },
     en: {
@@ -1532,7 +1549,7 @@ footer .nw{white-space:nowrap}
       fSample: "Sample", fdReset: "Use all points",
       fdTip: "Click a point on the chart to leave it out of the fit or use it again.",
       fdSE: "Standard error", fdCI: "95% CI", fdN: "Points", fdV: "Slope v", fdP: "p (fragmentation)", fdChk: "Check",
-      fdOK: "Meets R² > 0.9 and SE ≤ 0.1", fdCheck: "Review: ", fdFew: "At least 2 valid points are needed for the fit.",
+      fdOK: "Meets R² > 0.9 and SE ≤ 0.1", fdPopTip: "See where it comes from", fdPopX: "Close", fdPopD: "Probability that each fragment breaks again at each step. It goes from 1/8 (D = 0) to 1 (D = 3).", fdPopN: "v is the slope of the fitted line in the chart. Perugini et al. (2011), Eq. 19.", fdPopOut: "D outside 0–3: p is undefined.", fdCheck: "Review: ", fdFew: "At least 2 valid points are needed for the fit.",
       fdOut: "D is outside 0 to 3: p is undefined (Perugini et al. 2011, Eq. 19).", fdNoData: "Choose a sample with data."
     }
   };
@@ -2235,13 +2252,17 @@ footer .nw{white-space:nowrap}
       var f = res.fit, iss = res.issues || [], chk = !iss.length ? L("fdOK") : L("fdCheck") + iss.map(function (k) {
         return k === "n" ? (lang === "es" ? "n < 3, sin EE" : "n < 3, no SE") : (k === "r2" ? (lang === "es" ? "R² ≤ 0,9" : "R² ≤ 0.9") : (lang === "es" ? "EE > 0,1" : "SE > 0.1"));
       }).join(", ");
-      var tiles = [["D", decTxt(res.D, 3), "main"], [L("fdSE"), decTxt(res.se, 3)], [L("fdCI"), isFinite(res.ci) ? "± " + decTxt(res.ci, 3) : "—"], ["R²", decTxt(f.r2, 4)], [L("fdN"), String(f.n)], [L("fdV"), decTxt(res.v, 3)], [L("fdP"), isFinite(res.p) ? decTxt(res.p, 3) + (isFinite(res.pse) ? " ± " + decTxt(res.pse, 3) : "") : "—"], [L("fdChk"), chk]];
-      st.innerHTML = tiles.map(function (t) { return '<div class="stat' + (t[2] ? " " + t[2] : "") + '"><span>' + escT(t[0]) + "</span><b>" + escT(t[1] || "—") + "</b></div>"; }).join("");
+      var tiles = [["D", decTxt(res.D, 3), "main"], [L("fdSE"), decTxt(res.se, 3)], [L("fdCI"), isFinite(res.ci) ? "± " + decTxt(res.ci, 3) : "—"], ["R²", decTxt(f.r2, 4)], [L("fdN"), String(f.n)], [L("fdV"), decTxt(res.v, 3)], [L("fdP"), isFinite(res.p) ? decTxt(res.p, 3) + (isFinite(res.pse) ? " ± " + decTxt(res.pse, 3) : "") : "—", "calc"], [L("fdChk"), chk]];
+      st.innerHTML = tiles.map(function (t) {
+        var c = t[2] === "calc";
+        return '<div class="stat' + (t[2] ? " " + t[2] : "") + '"' + (c ? ' data-pop="p" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" title="' + esc(L("fdPopTip")) + '"' : "") + "><span>" + escT(t[0]) + "</span><b>" + escT(t[1] || "—") + "</b>" + (c ? ICO_INFO : "") + "</div>";
+      }).join("");
     }
     var msgs = [];
     if (res && res.warn.indexOf("few") >= 0 && res.rows.length) msgs.push(L("fdFew"));
     if (res && res.warn.indexOf("out") >= 0) msgs.push(L("fdOut"));
     w.hidden = !msgs.length; w.textContent = msgs.join(" ");
+    if (fdPop && !fdPop.hidden) { var pa = $("#fd-stats [data-pop]"); if (pa && res && res.fit) { fdPop.innerHTML = popPHtml(res); pa.setAttribute("aria-expanded", "true"); placePop(pa); } else closePop(); }
   }
   $("#sel-fd").addEventListener("change", function () { ui.fds = this.value; renderFractal(allSamples()); });
   $("#fig-fd").addEventListener("click", function (e) {
@@ -2252,6 +2273,100 @@ footer .nw{white-space:nowrap}
   });
   $("#fd-reset").addEventListener("click", function () { if (ui.fds) delete ui.fdEx[ui.fds]; renderFractal(allSamples()); });
   $("#dl-png-f").addEventListener("click", function () { savePng(ui.fsvg, 900, 560, ui.ftitle); });
+
+  /* Ventana chica con el origen de p: Perugini et al. (2011), ec. 19, p = 2^D / 8; EE(p) = p ln2 EE(D) */
+  var ICO_INFO = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.3v3.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="5" r=".95" fill="currentColor"/></svg>';
+  var fdPop = null;
+  function svgPofD(res) {
+    var W = 320, H = 196, x0 = 52, x1 = 308, yT = 10, yB = 158, o = [];
+    function X(d) { return x0 + (x1 - x0) * d / 3; }
+    function Y(q) { return yB - (yB - yT) * q; }
+    function n1(v) { return (Math.round(v * 10) / 10).toString(); }
+    o.push('<svg viewBox="0 0 ' + W + " " + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="p = 2^D / 8">');
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (q) {
+      o.push('<line x1="' + x0 + '" x2="' + x1 + '" y1="' + n1(Y(q)) + '" y2="' + n1(Y(q)) + '" stroke="#EDEFF2"/>');
+      o.push('<text x="' + (x0 - 7) + '" y="' + n1(Y(q) + 4) + '" text-anchor="end" font-size="11" fill="#4B5563">' + decTxt(q, 2) + "</text>");
+    });
+    [0, 0.5, 1, 1.5, 2, 2.5, 3].forEach(function (d) {
+      o.push('<line x1="' + n1(X(d)) + '" x2="' + n1(X(d)) + '" y1="' + yB + '" y2="' + (yB + 4) + '" stroke="#6B7280"/>');
+      o.push('<text x="' + n1(X(d)) + '" y="' + (yB + 17) + '" text-anchor="middle" font-size="11" fill="#4B5563">' + decTxt(d, d % 1 ? 1 : 0) + "</text>");
+    });
+    o.push('<path d="M' + x0 + " " + yT + "V" + yB + "H" + x1 + '" fill="none" stroke="#6B7280"/>');
+    o.push('<text x="' + n1((x0 + x1) / 2) + '" y="' + (H - 2) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#1F2937">D</text>');
+    o.push('<text x="10" y="' + n1((yT + yB) / 2) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#1F2937" transform="rotate(-90 10 ' + n1((yT + yB) / 2) + ')">p</text>');
+    var pts = [];
+    for (var i = 0; i <= 60; i++) { var d = i / 20; pts.push(n1(X(d)) + "," + n1(Y(Math.pow(2, d) / 8))); }
+    o.push('<polyline points="' + pts.join(" ") + '" fill="none" stroke="#1F2937" stroke-width="2" stroke-linejoin="round"/>');
+    if (isFinite(res.p)) {
+      var px = X(res.D), py = Y(res.p), dm = res.D > 2.2;
+      o.push('<path d="M' + n1(px) + " " + yB + "V" + n1(py) + "H" + x0 + '" fill="none" stroke="#9CA3AF" stroke-width="1.2" stroke-dasharray="4 3"/>');
+      if (isFinite(res.pse) && res.pse > 0) {
+        var a = Y(Math.min(1, res.p + res.pse)), b = Y(Math.max(0, res.p - res.pse));
+        o.push('<path d="M' + n1(px) + " " + n1(a) + "V" + n1(b) + "M" + n1(px - 4) + " " + n1(a) + "h8M" + n1(px - 4) + " " + n1(b) + 'h8" fill="none" stroke="#EA580C" stroke-width="1.6"/>');
+      }
+      o.push('<circle cx="' + n1(px) + '" cy="' + n1(py) + '" r="5.5" fill="#EA580C" stroke="#fff" stroke-width="1.5"/>');
+      o.push('<text x="' + (x0 + 6) + '" y="' + n1(py - 6) + '" font-size="12" font-weight="700" fill="#C2410C">p = ' + decTxt(res.p, 3) + "</text>");
+      o.push('<text x="' + n1(dm ? px - 6 : px + 6) + '" y="' + (yB - 7) + '" text-anchor="' + (dm ? "end" : "start") + '" font-size="12" font-weight="700" fill="#C2410C">D = ' + decTxt(res.D, 3) + "</text>");
+    }
+    o.push("</svg>");
+    return o.join("");
+  }
+  function popPHtml(res) {
+    var se = lang === "es" ? "EE" : "SE", v = decTxt(res.v, 3), eq = [];
+    if (res.v < 0) v = "(" + v + ")";
+    eq.push("D = 3 − v = 3 − " + v + " = " + decTxt(res.D, 3));
+    if (isFinite(res.p)) {
+      eq.push("p = 2<sup>D</sup> / 8 = 2<sup>" + decTxt(res.D, 3) + "</sup> / 8 = " + decTxt(res.p, 3));
+      if (isFinite(res.pse)) eq.push("± = p · ln 2 · " + se + " = " + decTxt(res.p, 3) + " · " + decTxt(Math.LN2, 3) + " · " + decTxt(res.se, 3) + " = " + decTxt(res.pse, 3));
+    } else eq.push(escT(L("fdPopOut")));
+    return '<div class="ph"><b>' + escT(L("fdP")) + '</b><button type="button" class="x" data-popx aria-label="' + esc(L("fdPopX")) + '"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>' +
+      '<p class="pd">' + escT(L("fdPopD")) + "</p>" + svgPofD(res) +
+      '<div class="eq">' + eq.map(function (t) { return "<div>" + t + "</div>"; }).join("") + "</div>" +
+      '<p class="nt">' + escT(L("fdPopN")) + "</p>";
+  }
+  function placePop(a) {
+    var r = a.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    var pw = fdPop.offsetWidth, ph = fdPop.offsetHeight;
+    var left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, vw - pw - 8)), top = r.bottom + 8;
+    if (top + ph > vh - 8 && r.top - ph - 8 >= 8) top = r.top - ph - 8;
+    fdPop.style.left = Math.round(left + window.pageXOffset) + "px";
+    fdPop.style.top = Math.round(top + window.pageYOffset) + "px";
+  }
+  function closePop(back) {
+    if (!fdPop || fdPop.hidden) return;
+    fdPop.hidden = true;
+    var a = $("#fd-stats [data-pop]");
+    if (a) { a.setAttribute("aria-expanded", "false"); if (back) a.focus(); }
+  }
+  function openPop(a) {
+    if (!ui.fres || !ui.fres.fit) return;
+    if (!fdPop) {
+      fdPop = document.createElement("div");
+      fdPop.className = "pop"; fdPop.id = "fd-pop"; fdPop.setAttribute("role", "dialog"); fdPop.hidden = true;
+      fdPop.addEventListener("click", function (e) { if (e.target.closest("[data-popx]")) closePop(true); });
+      document.body.appendChild(fdPop);
+    }
+    fdPop.innerHTML = popPHtml(ui.fres);
+    fdPop.setAttribute("aria-label", L("fdP"));
+    fdPop.hidden = false;
+    a.setAttribute("aria-expanded", "true");
+    placePop(a);
+  }
+  $("#fd-stats").addEventListener("click", function (e) {
+    var a = e.target.closest("[data-pop]"); if (!a) return;
+    if (fdPop && !fdPop.hidden) closePop(); else openPop(a);
+  });
+  $("#fd-stats").addEventListener("keydown", function (e) {
+    var a = e.target.closest("[data-pop]"); if (!a || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault(); if (fdPop && !fdPop.hidden) closePop(true); else openPop(a);
+  });
+  document.addEventListener("pointerdown", function (e) {
+    if (!fdPop || fdPop.hidden) return;
+    if (fdPop.contains(e.target) || e.target.closest("#fd-stats [data-pop]") || e.target.closest("#fig-fd circle[data-phi]")) return;
+    closePop();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && fdPop && !fdPop.hidden) closePop(true); });
+  window.addEventListener("resize", function () { if (fdPop && !fdPop.hidden) { var a = $("#fd-stats [data-pop]"); if (a) placePop(a); else closePop(); } });
 
 
   function renderExtras() {
