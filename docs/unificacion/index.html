@@ -309,7 +309,61 @@ footer .nw{white-space:nowrap}
     </div>
     <div class="figure" id="fig-curves"></div>
   </section>
-<!--@@STAGE2HTML@@-->
+
+  <section class="card" id="card-diag" aria-labelledby="t-diag">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">7</span>
+      <div class="ttl"><h2 id="t-diag" data-i18n="diag">Diagramas de clasificación</h2><p class="hint" data-i18n="diagHint">Mφ vs σφ con los campos del FW</p></div>
+      <div class="tools">
+        <label class="field inline"><span data-i18n="fDiagram">Diagrama</span><select id="sel-dg"><option value="walker">Walker (1971 and 1983)</option><option value="pardo">Pardo et al. (2009)</option><option value="gk">Gençalioğlu-Kuşcu et al. (2007)</option></select></label>
+        <button type="button" class="btn" id="dl-png-d" data-i18n="dlPng">Descargar PNG</button>
+      </div>
+    </div>
+    <div class="hbar">
+      <div class="checks"><label class="ck"><input type="checkbox" data-dgb="sieve" checked><span data-i18n="sieve">Tamizado</span></label><label class="ck"><input type="checkbox" data-dgb="laser" checked><span data-i18n="laser">Láser</span></label><label class="ck"><input type="checkbox" data-dgb="hybrid" checked><span data-i18n="vHybrid">Unificado</span></label></div>
+      <label class="ck"><input type="checkbox" id="dg-names"><span data-i18n="showNames">Nombres</span></label>
+    </div>
+    <div class="figure" id="fig-dg"></div>
+  </section>
+
+  <section class="card" id="card-comp" aria-labelledby="t-comp">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">8</span>
+      <div class="ttl"><h2 id="t-comp" data-i18n="comp">Componentes</h2><p class="hint" data-i18n="compHint">Conteos por fracción, en barras apiladas</p></div>
+      <div class="tools">
+        <label class="btn primary"><input type="file" accept=".xlsx,.xls,.xlsm,.csv" data-cfile><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/><path d="M5 19.5h14"/></svg><span data-i18n="upload">Subir Excel</span></label>
+        <button type="button" class="btn" id="ex-comp" data-i18n="example">Ejemplo</button>
+        <button type="button" class="btn quiet" id="clr-comp" data-i18n="clear">Vaciar</button>
+      </div>
+    </div>
+    <div class="grid" id="grid-comp"></div>
+    <div class="foot">
+      <div class="opts">
+        <label class="field inline"><span data-i18n="fGsd">Granulometría</span><select id="sel-cgsd"></select></label>
+        <div class="seg" role="group" aria-label="Barras"><button type="button" data-bmode="wt" data-i18n="vWt">%Wt</button><button type="button" data-bmode="100" data-i18n="v100">100 % por fracción</button></div>
+        <details class="fmt"><summary data-i18n="formats">Formatos aceptados</summary><p data-i18n="fmtComp"></p></details>
+      </div>
+      <button type="button" class="btn" id="dl-png-k" data-i18n="dlPng">Descargar PNG</button>
+    </div>
+    <p class="note warn" id="comp-note" hidden></p>
+    <div class="figure" id="fig-comp"></div>
+  </section>
+
+  <section class="card" id="card-fd" aria-labelledby="t-fd">
+    <div class="card-head">
+      <span class="num" aria-hidden="true">9</span>
+      <div class="ttl"><h2 id="t-fd" data-i18n="fractal">Dimensión fractal</h2><p class="hint" data-i18n="fractalHint">Método de masa</p></div>
+      <div class="tools">
+        <label class="field inline"><span data-i18n="fSample">Muestra</span><select id="sel-fd"></select></label>
+        <button type="button" class="btn quiet" id="fd-reset" data-i18n="fdReset">Usar todos los puntos</button>
+        <button type="button" class="btn" id="dl-png-f" data-i18n="dlPng">Descargar PNG</button>
+      </div>
+    </div>
+    <div class="figure" id="fig-fd"></div>
+    <div class="stats" id="fd-stats"></div>
+    <p class="note" data-i18n="fdTip">Tocá un punto del gráfico para sacarlo del ajuste o volver a usarlo.</p>
+    <p class="note warn" id="fd-warn" hidden></p>
+  </section>
 </main>
 
 <footer>
@@ -869,15 +923,15 @@ footer .nw{white-space:nowrap}
   /* Ejemplo                                                             */
   /* ------------------------------------------------------------------ */
   var EX = {
-    phi: [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4],
+    phi: [-4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
     sieve: {
-      "M-01": [0.12, 0.27, 0.7, 1.6, 3.13, 5.29, 7.73, 9.77, 10.68, 10.12, 8.45, 6.53, 5.34, 5.3, 24.97],
-      "M-02": [0.06, 0.12, 0.3, 0.7, 1.45, 2.69, 4.46, 6.63, 8.83, 10.55, 11.31, 10.95, 9.66, 7.95, 24.34]
+      "M-01": [0.0, 0.0, 0.0, 0.1, 1.99, 13.76, 34.37, 31.85, 12.2, 5.73],
+      "M-02": [0.1, 1.21, 6.54, 15.21, 15.66, 9.45, 10.47, 16.08, 15.05, 10.23]
     },
-    d: [2000, 1681.79, 1414.21, 1189.21, 1000, 840.9, 707.11, 594.6, 500, 420.45, 353.55, 297.3, 250, 210.22, 176.78, 148.65, 125, 105.11, 88.39, 74.33, 62.5, 52.56, 44.19, 37.16, 31.25, 26.28, 22.1, 18.58, 15.62, 13.14, 11.05, 9.29, 7.81, 6.57, 5.52, 4.65, 3.91, 3.28, 2.76, 2.32, 1.95],
+    d: [917, 771.1, 648.4, 545.3, 458.5, 385.6, 324.2, 272.6, 229.3, 192.8, 162.1, 136.3, 114.6, 96.39, 81.05, 68.16, 57.31, 48.19, 40.53, 34.08, 28.66, 24.1, 20.26, 17.04, 14.33, 12.05, 10.13, 8.52, 7.164, 6.024, 5.066, 4.26, 3.582, 3.012, 2.533, 2.13, 1.791, 1.506, 1.266, 1.065, 0.8955, 0.753, 0.6332, 0.5325],
     laser: {
-      "M-01": [1.873, 2.442, 3.069, 3.718, 4.341, 4.885, 5.298, 5.54, 5.586, 5.436, 5.112, 4.659, 4.14, 3.624, 3.18, 2.862, 2.701, 2.699, 2.822, 3.009, 3.186, 3.277, 3.229, 3.025, 2.679, 2.239, 1.762, 1.304, 0.907, 0.595, 0.366, 0.212, 0.115, 0.059, 0.028, 0.013, 0.005, 0.002, 0.001, 0, 0],
-      "M-02": [0.862, 1.176, 1.561, 2.014, 2.528, 3.086, 3.665, 4.234, 4.758, 5.203, 5.536, 5.734, 5.785, 5.688, 5.459, 5.123, 4.715, 4.27, 3.825, 3.406, 3.031, 2.706, 2.428, 2.187, 1.967, 1.756, 1.545, 1.331, 1.117, 0.909, 0.714, 0.541, 0.394, 0.276, 0.186, 0.12, 0.074, 0.044, 0.025, 0.014, 0.007]
+      "M-01": [1.739, 2.741, 4.032, 5.539, 7.105, 8.511, 9.524, 9.963, 9.742, 8.922, 7.665, 6.2, 4.749, 3.48, 2.478, 1.754, 1.268, 0.957, 0.758, 0.622, 0.518, 0.429, 0.349, 0.275, 0.21, 0.155, 0.111, 0.076, 0.05, 0.032, 0.02, 0.012, 0.007, 0.004, 0.002, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      "M-02": [4.619, 3.948, 3.506, 3.353, 3.496, 3.9, 4.496, 5.19, 5.881, 6.469, 6.87, 7.024, 6.909, 6.532, 5.935, 5.183, 4.349, 3.506, 2.717, 2.023, 1.447, 0.995, 0.657, 0.417, 0.254, 0.149, 0.084, 0.045, 0.024, 0.012, 0.006, 0.003, 0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     },
     groups: ["Caída", "Corriente"]
   };
@@ -1223,10 +1277,10 @@ footer .nw{white-space:nowrap}
   }
 
   /* Texto con las métricas de matplotlib (DejaVu Sans) */
-  var PT = 100 / 72, mctx = null;
+  var PT = 100 / 72, mctx = null, MFAM = '"DejaVu Sans FW"';
   function meas(s, px, bold) {
     if (!mctx) mctx = document.createElement("canvas").getContext("2d");
-    mctx.font = (bold ? "700 " : "400 ") + px + 'px "DejaVu Sans FW"';
+    mctx.font = (bold ? "700 " : "400 ") + px + "px " + MFAM;
     var m = mctx.measureText(s);
     return { w: m.actualBoundingBoxLeft + m.actualBoundingBoxRight, a: m.actualBoundingBoxAscent, d: m.actualBoundingBoxDescent };
   }
@@ -1246,6 +1300,33 @@ footer .nw{white-space:nowrap}
   }
   function f2(v) { return (+v.toFixed(2)).toString(); }
 
+
+  // Líneas del texto de parámetros (σ, K, Md, M, Sk) y su caja en píxeles
+  function paramLines(prm) {
+    var lines = [];
+    if (!prm) return lines;
+    if (isFinite(prm.sigma)) lines.push("σ: " + fmtNum(prm.sigma));
+    if (isFinite(prm.kurtosis)) lines.push("K: " + fmtNum(prm.kurtosis));
+    if (isFinite(prm.median)) lines.push("Md: " + fmtNum(prm.median));
+    if (isFinite(prm.mean)) lines.push("M: " + fmtNum(prm.mean));
+    if (isFinite(prm.skewness)) lines.push("Sk: " + fmtNum(prm.skewness));
+    return lines;
+  }
+  function paramBox(lines, x0, x1, yT, yB) {
+    var w = 0, h = 0;
+    lines.forEach(function (s, i) { var t = tm(s, 12, false); w = Math.max(w, t.w); h += i === 0 ? t.h : Math.max(t.lpa * 1.2, (t.h - t.d) * 1.2) + t.d; });
+    var ax = x0 + 0.10 * (x1 - x0), ay = yB - 0.88 * (yB - yT);
+    return { l: ax, r: ax + w, t: ay, b: ay + h };
+  }
+  // El FW pone el texto en (0.10, 0.88) de los ejes; si una barra llega a esa zona, se agranda el eje Y lo justo para que no choquen
+  function paramHeadroom(prm, ytop, x0, x1, yT, yB, bars) {
+    var lines = paramLines(prm);
+    if (!lines.length) return ytop;
+    var bx = paramBox(lines, x0, x1, yT, yB), hmax = 0, lim = yB - (bx.b + 8);
+    bars.forEach(function (b) { if (b[1] >= bx.l - 6 && b[0] <= bx.r + 6 && b[2] > hmax) hmax = b[2]; });
+    if (!(hmax > 0) || lim <= 0) return ytop;
+    return Math.max(ytop, hmax * (yB - yT) / lim);
+  }
   // plot_histogram del FW (estilo por defecto), como SVG de 1100 x 700
   function svgHistogram(title, rows, prm) {
     var W = 1100, H = 700, x0 = 132, x1 = 968, yT = 112, yB = 588, TL = 7 * PT, PAD = 10.5 * PT, LP = 4 * PT;
@@ -1266,6 +1347,7 @@ footer .nw{white-space:nowrap}
     function Y(v) { return yB - v * (yB - yT) / ytop; }
     function Y2(v) { return yB - v * (yB - yT) / 102; }
     function sn(v) { return Math.floor(v + 0.5); }
+    ytop = paramHeadroom(prm, ytop, x0, x1, yT, yB, d.map(function (r) { return [X(r.phi - bw / 2), X(r.phi + bw / 2), r.w]; }));
     var o = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '" font-family="&quot;DejaVu Sans FW&quot;, &quot;DejaVu Sans&quot;, Verdana, sans-serif" style="white-space:pre"><rect width="' + W + '" height="' + H + '" fill="#fff"/>'];
     var tkw = 1.8 * PT, tick = ' stroke="#000" stroke-width="' + tkw.toFixed(3) + '" fill="none"';
     // eje Y izquierdo
@@ -1421,7 +1503,7 @@ footer .nw{white-space:nowrap}
       phComp: ["φ", "Componente 1", "Componente 2", "Componente 3"],
       compEmpty: "Escribí o pegá los conteos (o tocá Ejemplo) para ver las barras.",
       compMissing: function (l) { return "Estas fracciones no están en la granulometría elegida y no se dibujan: φ " + l + "."; },
-      exComp: ["Pómez", "Líticos", "Cristales"],
+      exComp: ["Pómez", "Escoria", "Líticos", "Cristales", "Vidrio"],
       fractal: "Dimensión fractal", fractalHint: "Método de masa (Perugini y Kueppers 2012; Paredes-Mariño et al. 2017)",
       fSample: "Muestra", fdReset: "Usar todos los puntos",
       fdTip: "Tocá un punto del gráfico para sacarlo del ajuste o volver a usarlo.",
@@ -1445,12 +1527,12 @@ footer .nw{white-space:nowrap}
       phComp: ["φ", "Component 1", "Component 2", "Component 3"],
       compEmpty: "Type or paste the counts (or press Example) to see the bars.",
       compMissing: function (l) { return "These fractions are not in the chosen grain-size sample and are not drawn: φ " + l + "."; },
-      exComp: ["Pumice", "Lithics", "Crystals"],
+      exComp: ["Pumice", "Scoria", "Lithics", "Crystals", "Glass"],
       fractal: "Fractal dimension", fractalHint: "Mass method (Perugini and Kueppers 2012; Paredes-Mariño et al. 2017)",
       fSample: "Sample", fdReset: "Use all points",
       fdTip: "Click a point on the chart to leave it out of the fit or use it again.",
       fdSE: "Standard error", fdCI: "95% CI", fdN: "Points", fdV: "Slope v", fdP: "p (fragmentation)", fdChk: "Check",
-      fdOK: "Meets R² > 0.9 and SE ≤ 0.1", fdCheck: "Check: ", fdFew: "At least 2 valid points are needed for the fit.",
+      fdOK: "Meets R² > 0.9 and SE ≤ 0.1", fdCheck: "Review: ", fdFew: "At least 2 valid points are needed for the fit.",
       fdOut: "D is outside 0 to 3: p is undefined (Perugini et al. 2011, Eq. 19).", fdNoData: "Choose a sample with data."
     }
   };
@@ -1664,7 +1746,9 @@ footer .nw{white-space:nowrap}
       var ymax = 0;
       ser.forEach(function (s) { s.d.forEach(function (r) { if (r.w > ymax) ymax = r.w; }); });
       if (!isFinite(ymax) || ymax <= 0) ymax = 1;
-      ytop = ymax * 1.18; yl = maxNTicks(0, ytop, 9); ylab = scalarLabels(yl);
+      ytop = ymax * 1.18;
+      if (prm && ser.length === 1) ytop = paramHeadroom(prm, ytop, x0, x1, yT, yB, ser[0].d.map(function (r) { var xx = x0 + (r.phi - xl0) * (x1 - x0) / (xl1 - xl0); return [xx - 4, xx + 4, r.w]; }));
+      yl = maxNTicks(0, ytop, 9); ylab = scalarLabels(yl);
     }
     function X(v) { return x0 + (v - xl0) * (x1 - x0) / (xl1 - xl0); }
     function Y(v) { return yB - v * (yB - yT) / ytop; }
@@ -1700,13 +1784,11 @@ footer .nw{white-space:nowrap}
       });
     });
     if (prm && ser.length === 1) {
-      var lines = [];
-      if (isFinite(prm.sigma)) lines.push("σ: " + fmtNum(prm.sigma));
-      if (isFinite(prm.kurtosis)) lines.push("K: " + fmtNum(prm.kurtosis));
-      if (isFinite(prm.median)) lines.push("Md: " + fmtNum(prm.median));
-      if (isFinite(prm.mean)) lines.push("M: " + fmtNum(prm.mean));
-      if (isFinite(prm.skewness)) lines.push("Sk: " + fmtNum(prm.skewness));
-      var ty = 0, axn = x0 + 0.10 * (x1 - x0), ayn = yB - 0.88 * (yB - yT);
+      var lines = paramLines(prm);
+      var ty = 0, axn = x0 + 0.10 * (x1 - x0), ayn = yB - 0.88 * (yB - yT), bx = paramBox(lines, x0, x1, yT, yB);
+      if (cum && ser[0].d.some(function (r, i) { var xx = X(r.phi), yy = Y(ser[0].cum[i]); return xx >= bx.l - 8 && xx <= bx.r + 8 && yy <= bx.b + 8; })) {
+        axn = x1 - 0.03 * (x1 - x0) - (bx.r - bx.l); ayn = yB - 0.06 * (yB - yT) - (bx.b - bx.t);
+      }
       lines.forEach(function (s, i) {
         var t = tm(s, 12, false);
         ty = i === 0 ? -(t.h - t.d) : ty - Math.max(t.lpa * 1.2, (t.h - t.d) * 1.2);
@@ -1756,14 +1838,430 @@ footer .nw{white-space:nowrap}
   Array.prototype.forEach.call(document.querySelectorAll("[data-cmode]"), function (b) { b.addEventListener("click", function () { ui.cmode = b.getAttribute("data-cmode"); renderExtras(); }); });
   $("#dl-png-c").addEventListener("click", function () { savePng(ui.csvg, 1100, 700, ui.ctitle); });
 
-  /*@@STAGE2@@*/
+  /* 7. Diagramas de clasificación (GraphicVectors.py del FW: X = Mφ, Y = σφ) */
+  var VEC = {"walker":{"title":"Walker (1971 and 1983)","lim":[-4.2,6.0,0.0,5.0],"zones":[{"n":"Fall deposit","v":[[-4.1,1.55],[-3.55,1.95],[-2.55,2.28],[-1.45,2.5],[-0.25,2.55],[0.85,2.38],[1.85,2.15],[2.45,1.92],[2.8,1.55],[2.72,0.92],[2.18,0.38],[1.25,0.12],[0.1,0.1],[-1.2,0.25],[-2.35,0.48],[-3.25,0.78],[-3.92,1.15]],"l":[-3.05,1.55],"ec":"#585858","fc":"#eeeeee","a":0.07,"lw":2.05,"ls":[14,8],"z":1,"fs":11},{"n":"Fine-depleted flow","v":[[-3.75,3.08],[-3.15,3.48],[-2.1,3.68],[-1.05,3.88],[-0.1,3.95],[0.65,3.62],[1.08,3.2],[1.18,2.72],[0.82,2.28],[0.02,2.08],[-0.95,2.1],[-1.88,2.18],[-2.62,2.42],[-3.2,2.72],[-3.65,2.9]],"l":[-2.95,2.6],"ec":"#111111","fc":"#ededed","a":0.1,"lw":1.1,"ls":[6,5,1.5,5],"z":3,"fs":11},{"n":"Pyroclastic surge","v":[[-2.2,2.22],[-1.7,2.52],[-0.9,2.72],[-0.05,2.92],[0.62,3.12],[1.05,3.82],[1.65,3.62],[2.22,3.38],[2.95,3.18],[3.78,3.05],[4.62,2.9],[5.15,2.58],[5.48,2.15],[5.3,1.68],[4.95,1.08],[4.72,0.72],[4.12,0.55],[3.15,0.48],[1.85,0.48],[0.55,0.58],[-0.65,0.68],[-1.38,0.98],[-1.92,1.45],[-2.2,1.92]],"l":[3.85,0.82],"ec":"#505050","fc":"#e2e2e2","a":0.09,"lw":2.05,"ls":":","z":4,"fs":11},{"n":"Pyroclastic flow","v":[[-2.28,3.42],[-1.72,3.92],[-0.82,4.2],[0.18,4.48],[0.98,4.72],[1.62,4.58],[2.08,4.42],[2.45,4.18],[2.75,3.92],[3.1,3.72],[3.78,3.48],[4.38,3.02],[4.92,2.48],[5.42,1.95],[5.85,1.45],[5.82,1.18],[5.4,0.98],[4.78,0.92],[3.95,1.0],[3.05,1.2],[2.18,1.32],[1.32,1.62],[0.45,1.95],[-0.45,2.28],[-1.25,2.6],[-1.88,2.92],[-2.18,3.18]],"l":[1.28,4.18],"ec":"#4a4a4a","fc":"#d9d9d9","a":0.11,"lw":2.15,"ls":"-","z":5,"fs":11}],"lines":[],"smooth":3},"pardo":{"title":"Pardo et al. (2009)","lim":[-4.2,6.0,0.0,5.0],"zones":[{"n":"Fallout","v":[[-4.15,1.55],[-3.9,1.95],[-3.3,2.18],[-2.45,2.38],[-1.45,2.52],[-0.2,2.55],[1.05,2.35],[2.05,2.1],[2.85,1.92],[3.5,1.85],[4.05,1.82],[4.05,1.45],[3.7,0.95],[3.15,0.42],[2.1,0.12],[0.8,0.1],[-0.55,0.18],[-1.85,0.32],[-2.85,0.58],[-3.55,0.95],[-4.05,1.28]],"l":[-3.1,1.55],"ec":"#595959","fc":"#eeeeee","a":0.07,"lw":2.0,"ls":[12,7],"z":1,"fs":11},{"n":"Pyroclastic flow","v":[[-2.25,3.42],[-1.95,3.82],[-1.25,4.05],[-0.3,4.28],[0.75,4.55],[1.35,4.75],[2.1,4.62],[2.7,4.48],[3.1,4.28],[3.45,4.02],[3.8,3.75],[4.1,3.55],[4.58,3.18],[5.0,2.82],[5.42,2.38],[5.78,1.98],[5.95,1.58],[5.78,1.28],[5.35,1.02],[4.85,0.92],[4.15,0.92],[3.2,1.1],[2.25,1.32],[1.35,1.62],[0.4,2.0],[-0.55,2.32],[-1.3,2.62],[-1.92,2.95]],"l":[1.28,4.18],"ec":"#4a4a4a","fc":"#d9d9d9","a":0.11,"lw":2.15,"ls":"-","z":5,"fs":11},{"n":"Pyroclastic surges","v":[[-2.3,2.15],[-1.95,2.48],[-1.1,2.68],[-0.15,2.82],[0.18,3.18],[0.55,3.78],[1.22,3.72],[1.95,3.42],[2.75,3.2],[3.55,3.08],[4.3,2.98],[4.95,2.86],[5.42,2.48],[5.38,1.92],[5.1,1.28],[4.78,0.82],[4.18,0.65],[3.1,0.6],[1.85,0.58],[0.55,0.62],[-0.55,0.72],[-1.28,0.98],[-1.78,1.35],[-2.08,1.78]],"l":[2.8,3.05],"ec":"#555555","fc":"#e7e7e7","a":0.08,"lw":2.0,"ls":":","z":4,"fs":11},{"n":"Zone I","v":[[-3.65,3.08],[-2.95,3.18],[-2.05,3.12],[-1.2,2.98],[-0.48,2.68],[0.02,2.18],[0.18,1.52],[0.15,0.88],[-0.12,0.5],[-0.92,0.42],[-1.92,0.45],[-2.82,0.58],[-3.35,0.88],[-3.58,1.62]],"l":[-3.18,2.52],"ec":"#8c8c8c","fc":"#eeeeee","a":0.06,"lw":1.5,"ls":":","z":2,"fs":11},{"n":"Zone II","v":[[0.15,1.55],[0.82,1.95],[1.65,2.15],[2.55,2.15],[3.35,2.1],[4.05,1.92],[4.55,1.58],[4.75,1.1],[4.6,0.62],[4.1,0.28],[3.28,0.12],[2.3,0.1],[1.3,0.2],[0.55,0.6],[0.18,1.05]],"l":[2.05,1.95],"ec":"#969696","fc":"#eeeeee","a":0.06,"lw":1.5,"ls":":","z":2,"fs":11},{"n":"Zone III","v":[[4.08,1.62],[4.15,2.18],[4.35,2.85],[4.62,3.22],[4.92,3.18],[5.1,2.78],[5.12,2.18],[5.02,1.55],[4.85,1.08],[4.52,0.98],[4.2,1.18]],"l":[4.72,2.62],"ec":"#a8a8a8","fc":"#f4f4f4","a":0.05,"lw":1.45,"ls":":","z":2,"fs":11}],"lines":[],"smooth":3},"gk":{"title":"Gençalioğlu-Kuşcu et al. (2007)","lim":[-3.5,5.5,0.0,4.2],"zones":[{"n":"Flow","v":[[-3.1,2.55],[-2.8,3.0],[-2.25,3.55],[-1.65,3.95],[-0.85,4.15],[0.05,4.05],[0.85,3.9],[1.55,3.55],[2.15,3.35],[2.75,2.9],[3.3,2.6],[3.65,2.35],[3.95,2.02],[4.05,1.72],[3.92,1.5],[3.4,1.1],[2.75,0.85],[1.75,0.6],[0.95,0.42],[0.25,0.38],[-0.55,0.45],[-1.25,0.62],[-2.0,1.05],[-2.7,1.6],[-3.08,2.0]],"l":[-0.9,3.45],"ec":"#111111","fc":"#d8d8d8","a":0.1,"lw":1.1,"ls":"-","z":1,"fs":11},{"n":"Fall","v":[[-3.5,2.1],[-2.75,2.62],[-1.9,2.95],[-0.55,2.88],[0.9,2.7],[2.1,2.86],[3.25,2.62],[4.3,2.38],[5.45,2.28],[5.5,0.52],[4.95,0.42],[4.15,0.45],[3.62,0.4],[2.85,0.58],[1.85,0.42],[0.7,0.38],[-0.6,0.42],[-1.55,0.55],[-2.4,0.52],[-3.15,0.6],[-3.5,0.7]],"l":[4.55,1.2],"ec":"#111111","fc":"#f0f0f0","a":0.1,"lw":1.0,"ls":[10,7],"z":0,"fs":11},{"n":"Surge","v":[[0.95,1.55],[1.15,1.5],[1.45,1.4],[1.85,1.28],[2.22,1.18],[2.6,1.03],[3.05,0.96],[3.28,1.05],[3.62,1.28],[3.88,1.52],[3.98,1.78],[3.82,2.02],[3.45,2.15],[3.1,2.22],[2.72,2.28],[2.3,2.18],[1.9,2.05],[1.52,1.88],[1.2,1.7]],"l":[3.25,1.95],"ec":"#111111","fc":"#e5e5e5","a":0.1,"lw":1.0,"ls":[6,5],"z":2,"fs":11},{"n":"Surge Dunes","v":[[1.22,1.6],[1.45,1.66],[1.82,1.6],[2.15,1.48],[2.45,1.34],[2.7,1.18],[2.95,0.95],[3.06,0.72],[2.92,0.56],[2.62,0.42],[2.15,0.35],[1.85,0.28],[1.58,0.28],[1.35,0.42],[1.08,0.7],[0.95,1.02],[1.0,1.3]],"l":[1.55,1.35],"ec":"#111111","fc":"#efefef","a":0.1,"lw":1.1,"ls":":","z":3,"fs":11}],"lines":[{"xy":[[-3.5,2.05],[-2.9,2.38],[-2.2,2.7],[-1.4,2.92],[-0.4,2.84],[0.7,2.66],[1.55,2.58],[2.35,2.75],[3.15,2.68],[4.1,2.45],[5.5,2.28]],"zone_name":"Fall","linestyle":[0,[10,7]],"linewidth":1.0,"color":"#111111","zorder":4},{"xy":[[-3.5,0.7],[-2.7,0.55],[-1.9,0.56],[-1.05,0.66],[-0.2,0.55],[0.65,0.55],[1.65,0.6],[2.35,0.62],[2.8,0.8],[3.15,1.02],[3.7,1.05]],"zone_name":"Fall","linestyle":[0,[10,7]],"linewidth":1.0,"color":"#111111","zorder":4}],"smooth":3}};
+  var LS_DASH = { "--": [3.7, 1.6], ":": [1, 1.65], "-.": [6.4, 1.6, 1, 1.6] };
+  var ZONE_LABEL = { "Fine-depleted flow": "Fine-depleted\nflow", "Surge Dunes": "Surge\nDunes", "Pyroclastic surges": "Pyroclastic\nsurges", "Pyroclastic flow": "Pyroclastic\nflow", "Zone I": "I", "Zone II": "II", "Zone III": "III" };
+  function dashArr(ls, lw) {
+    var a = Array.isArray(ls) ? (Array.isArray(ls[1]) ? ls[1] : ls) : LS_DASH[ls];
+    return a ? a.map(function (v) { return F(v * lw * PT); }).join(" ") : "";
+  }
+  function chaikin(pts, it, closed) {
+    for (var k = 0; k < it; k++) {
+      var out = closed ? [] : [pts[0]], n = pts.length, m = closed ? n : n - 1;
+      for (var i = 0; i < m; i++) {
+        var p0 = pts[i], p1 = pts[(i + 1) % n];
+        out.push([0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]], [0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]]);
+      }
+      if (!closed) out.push(pts[n - 1]);
+      pts = out;
+    }
+    return pts;
+  }
+  function svgDiagram(key, pts, names) {
+    var D = VEC[key], W = 880, H = 540, lim = D.lim.slice();
+    if (pts.length) {
+      var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+      lim[0] = Math.min(lim[0], Math.min.apply(null, xs) - 0.2); lim[1] = Math.max(lim[1], Math.max.apply(null, xs) + 0.2);
+      lim[2] = Math.max(0, Math.min(lim[2], Math.min.apply(null, ys) - 0.15)); lim[3] = Math.max(lim[3], Math.max.apply(null, ys) + 0.2);
+    }
+    var xt = maxNTicks(lim[0], lim[1], 9), yt = maxNTicks(lim[2], lim[3], 9), xlab = scalarLabels(xt), ylab = scalarLabels(yt);
+    function vis(v, a, b) { var e = (b - a) * 1e-10; return v >= a - e && v <= b + e; }
+    var TL = 3.5 * PT, PADT = 3.5 * PT, lw = 0, ttl = tm(D.title, 12, false), lab = tm("Mean (Mφ)", 10, false);
+    yt.forEach(function (v, i) { if (vis(v, lim[2], lim[3])) lw = Math.max(lw, tm(ylab[i], 10, false).w); });
+    var x0 = 15 + lab.h + 4 * PT + lw + PADT + TL, x1 = W - 22, yT = 15 + ttl.h + 6 * PT, yB = H - (15 + lab.h + 4 * PT + tm("0", 10, false).h + PADT + TL);
+    function X(v) { return x0 + (v - lim[0]) * (x1 - x0) / (lim[1] - lim[0]); }
+    function Y(v) { return yB - (v - lim[2]) * (yB - yT) / (lim[3] - lim[2]); }
+    var o = [svgOpen(W, H, '"DejaVu Sans FW", "DejaVu Sans", Verdana, sans-serif')];
+    o.push('<defs><clipPath id="dgclip"><rect x="' + F(x0) + '" y="' + F(yT) + '" width="' + F(x1 - x0) + '" height="' + F(yB - yT) + '"/></clipPath></defs>');
+    var gs = ' stroke="#b0b0b0" stroke-opacity="0.18" stroke-width="' + F(0.8 * PT) + '"';
+    xt.forEach(function (v) { if (vis(v, lim[0], lim[1])) o.push('<path d="M' + F(X(v)) + " " + F(yT) + "V" + F(yB) + '"' + gs + "/>"); });
+    yt.forEach(function (v) { if (vis(v, lim[2], lim[3])) o.push('<path d="M' + F(x0) + " " + F(Y(v)) + "H" + F(x1) + '"' + gs + "/>"); });
+    var g = ['<g clip-path="url(#dgclip)">'], labels = [];
+    D.zones.map(function (z, i) { return [z, i]; }).sort(function (a, b) { return (a[0].z - b[0].z) || (a[1] - b[1]); }).forEach(function (zi) {
+      var z = zi[0], P = chaikin(z.v, D.smooth, true), da = dashArr(z.ls, z.lw), gk = key === "gk";
+      g.push('<path d="M' + P.map(function (p) { return F(X(p[0])) + " " + F(Y(p[1])); }).join("L") + 'Z" fill="' + z.fc + '" fill-opacity="' + z.a + '" stroke="' + z.ec + '"' + (gk ? ' stroke-opacity="' + z.a + '"' : "") + ' stroke-width="' + F(z.lw * PT) + '" stroke-linejoin="round" stroke-linecap="round"' + (da ? ' stroke-dasharray="' + da + '"' : "") + "/>");
+      labels.push(multiText(ZONE_LABEL[z.n] || z.n, X(z.l[0]), Y(z.l[1]), z.fs, "#444444", false));
+    });
+    D.lines.forEach(function (ln) {
+      var P = chaikin(ln.xy, ln.smooth_iterations !== undefined ? ln.smooth_iterations : D.smooth, false), da = dashArr(ln.linestyle || "-", ln.linewidth || 1);
+      g.push('<path d="M' + P.map(function (p) { return F(X(p[0])) + " " + F(Y(p[1])); }).join("L") + '" fill="none" stroke="' + (ln.color || "#111111") + '" stroke-width="' + F((ln.linewidth || 1) * PT) + '" stroke-linejoin="round" stroke-linecap="round"' + (da ? ' stroke-dasharray="' + da + '"' : "") + "/>");
+    });
+    g.push(labels.join(""));
+    var r = 3.25 * PT, groups = [];
+    pts.forEach(function (p) {
+      if (groups.indexOf(p.gk) < 0) groups.push(p.gk);
+      g.push('<circle cx="' + F(X(p.x)) + '" cy="' + F(Y(p.y)) + '" r="' + F(r) + '" fill="' + p.color + '" fill-opacity="0.95" stroke="#000" stroke-opacity="0.95" stroke-width="' + F(0.45 * PT) + '"/>');
+    });
+    if (names) pts.forEach(function (p) { g.push('<g opacity="0.9">' + place(p.name, 8, false, X(p.x) + 4 * PT, Y(p.y) - 4 * PT, "left", "baseline").svg + "</g>"); });
+    g.push("</g>");
+    o.push(g.join(""));
+    var sp = ' stroke="#000" stroke-width="' + F(0.8 * PT) + '" fill="none"';
+    o.push('<rect x="' + F(x0) + '" y="' + F(yT) + '" width="' + F(x1 - x0) + '" height="' + F(yB - yT) + '"' + sp + "/>");
+    var minL = x0, maxB = yB;
+    xt.forEach(function (v, i) {
+      if (!vis(v, lim[0], lim[1])) return;
+      o.push('<path d="M' + F(X(v)) + " " + F(yB) + "V" + F(yB + TL) + '"' + sp + "/>");
+      var t = place(xlab[i], 10, false, X(v), yB + TL + PADT, "center", "top"); o.push(t.svg); maxB = Math.max(maxB, t.y1);
+    });
+    yt.forEach(function (v, i) {
+      if (!vis(v, lim[2], lim[3])) return;
+      o.push('<path d="M' + F(x0) + " " + F(Y(v)) + "H" + F(x0 - TL) + '"' + sp + "/>");
+      var t = place(ylab[i], 10, false, x0 - TL - PADT, Y(v), "right", "center_baseline"); o.push(t.svg); minL = Math.min(minL, t.x0);
+    });
+    o.push(place("Mean (Mφ)", 10, false, (x0 + x1) / 2, maxB + 4 * PT, "center", "top").svg);
+    var yl = tm("Sorting (σφ)", 10, false);
+    o.push(tEl("Sorting (σφ)", yl.px, false, minL - 4 * PT - yl.d, (yT + yB) / 2 + yl.w / 2, "#000", true));
+    o.push(place(D.title, 12, false, (x0 + x1) / 2, yT - 6 * PT, "center", "baseline").svg);
+    if (pts.length) {
+      o.push(legendBox(groups.map(function (gk) {
+        var p = pts.filter(function (q) { return q.gk === gk; })[0];
+        return { label: p.gl, handle: function (x, y, hl) { return '<circle cx="' + F(x + hl / 2) + '" cy="' + F(y) + '" r="' + F(r) + '" fill="' + p.color + '" fill-opacity="0.95" stroke="#000" stroke-width="' + F(0.45 * PT) + '"/>'; } };
+      }), 8, { x0: x0, x1: x1, yT: yT, yB: yB }, "ur", true));
+    } else o.push(place("No data points loaded yet.", 9, false, (x0 + x1) / 2, yB - 0.03 * (yB - yT), "center", "baseline", "#666666").svg);
+    o.push("</svg>");
+    return o.join("");
+  }
+  ui.dgBases = { sieve: true, laser: true, hybrid: true };
+  function groupColors(list) {
+    var m = {}, i = 0;
+    list.forEach(function (s) { var k = s.g + " (" + s.base + ")"; if (!(k in m)) m[k] = GROUP_COLORS[i++ % GROUP_COLORS.length]; });
+    return m;
+  }
+  function renderDiagram(list) {
+    var pm = $("#sel-pm").value, cols = groupColors(list), pts = [];
+    list.forEach(function (s) {
+      if (!ui.dgBases[s.base]) return;
+      var p = calcParams(s.rows.map(function (r) { return r.phi; }), ws(s.rows), pm);
+      if (!isFinite(p.mean) || !isFinite(p.sigma)) return;
+      var gk = s.g + " (" + s.base + ")";
+      pts.push({ x: p.mean, y: p.sigma, name: s.name, gk: gk, gl: s.g + " (" + BASE_EN[s.base] + ")", color: cols[gk] });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-dgb]"), function (c) { c.checked = !!ui.dgBases[c.getAttribute("data-dgb")]; });
+    ui.dsvg = svgDiagram($("#sel-dg").value, pts, $("#dg-names").checked);
+    $("#fig-dg").innerHTML = ui.dsvg;
+  }
+  $("#sel-dg").addEventListener("change", function () { renderExtras(); });
+  $("#dg-names").addEventListener("change", function () { renderExtras(); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-dgb]"), function (c) { c.addEventListener("change", function () { ui.dgBases[c.getAttribute("data-dgb")] = c.checked; renderExtras(); }); });
+  $("#dl-png-d").addEventListener("click", function () { savePng(ui.dsvg, 880, 540, VEC[$("#sel-dg").value].title); });
+
+  /* 8. Componentes (Componentry: cada fracción a 100 % y escalada con su peso) */
+  var PASTEL = ["#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5", "#ffed6f", "#a6cee3", "#b2df8a", "#cab2d6", "#fdbf6f"];
+  // component_palette_colors("Pastel — Set3", n)
+  function compColors(n) {
+    if (n <= PASTEL.length) { var out = []; for (var i = 0; i < n; i++) out.push(PASTEL[n === 1 ? 0 : rint(i * (PASTEL.length - 1) / (n - 1))]); return out; }
+    var rgb = PASTEL.map(function (h) { return [1, 3, 5].map(function (k) { return parseInt(h.substr(k, 2), 16); }); }), res = [];
+    for (var j = 0; j < n; j++) {
+      var t = j / (n - 1) * (rgb.length - 1), a = Math.min(rgb.length - 2, Math.floor(t)), f = t - a;
+      res.push("#" + [0, 1, 2].map(function (c) { var v = Math.round(rgb[a][c] + (rgb[a + 1][c] - rgb[a][c]) * f); return (v < 16 ? "0" : "") + v.toString(16); }).join(""));
+    }
+    return res;
+  }
+  function parseComp(aoa) {
+    var head = aoa[0] || [], raw = [], cols = [];
+    for (var j = 1; j < head.length; j++) { var n0 = head[j] === null || head[j] === undefined ? "" : String(head[j]).trim(); if (n0) { raw.push(n0); cols.push(j); } }
+    var names = makeUnique(raw), acc = new Map();
+    for (var i = 1; i < aoa.length; i++) {
+      var r = aoa[i]; if (!r) continue;
+      var phi = toNum(r[0]); if (!isFinite(phi)) continue;
+      phi = round6(phi);
+      if (!acc.has(phi)) acc.set(phi, cols.map(function () { return 0; }));
+      var a = acc.get(phi);
+      cols.forEach(function (c, k) { var v = toNum(r[c]); if (isFinite(v) && v > 0) a[k] += v; });
+    }
+    var frac = new Map();
+    acc.forEach(function (v, phi) { var s = v.reduce(function (x, y) { return x + y; }, 0); if (s > 0) frac.set(phi, v.map(function (x) { return 100 * x / s; })); });
+    return { names: names, frac: frac };
+  }
+  function gFmt(v) { return String(parseFloat(v.toPrecision(6))); }
+  function g2(x) { if (x === 0) return "0"; var e = Math.floor(Math.log10(Math.abs(x))); return pyFixed(x, Math.max(0, 1 - e)).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); }
+  var MF_AR = 'Arial, "Liberation Sans", Arimo, Helvetica, sans-serif';
+  function svgComp(title, gsd, comp, colors, b100) {
+    MFAM = MF_AR;
+    try { return svgCompIn(title, gsd, comp, colors, b100); } finally { MFAM = '"DejaVu Sans FW"'; }
+  }
+  function svgCompIn(title, gsd, comp, colors, b100) {
+    var W = 1150, H = 640, showCum = !!gsd, items = comp.names.length > 0;
+    var bars = gsd ? gsd.map(function (r) { return { phi: r.phi, w: r.w }; }) : Array.from(comp.frac.keys()).sort(function (a, b) { return a - b; }).map(function (p) { return { phi: p, w: 100 }; });
+    if (!bars.length) return "";
+    var right = items ? (showCum ? 0.68 : 0.73) : (showCum ? 0.90 : 0.97);
+    var x0 = 0.095 * W, x1 = right * W, yT = 0.16 * H, yB = 0.88 * H;
+    var phis = bars.map(function (b) { return b.phi; }), uq = Array.from(new Set(phis.map(function (p) { return npRound(p, 8); }))).sort(function (a, b) { return a - b; });
+    var dif = []; for (var i = 1; i < uq.length; i++) if (uq[i] - uq[i - 1] > 1e-9) dif.push(uq[i] - uq[i - 1]);
+    var step = dif.length ? Math.min.apply(null, dif) : 1, bw = Math.max(0.01, 0.85 * step), tk = uq;
+    if (uq.length > 1) {
+      var st = Math.floor(uq[0] / step) * step, sp2 = Math.ceil(uq[uq.length - 1] / step) * step, n = Math.round((sp2 - st) / step) + 1;
+      if (n > 0 && n <= 80) { tk = []; for (var q = 0; q < n; q++) tk.push(npRound(st + q * step, 8)); }
+    }
+    var xa = Math.min.apply(null, phis) - bw / 2, xb = Math.max.apply(null, phis) + bw / 2, pad = Math.max(Math.abs(xb - xa) * 0.008, bw * 0.10, 1e-9), xl0 = xa - pad, xl1 = xb + pad;
+    var top = b100 ? 100 : Math.max.apply(null, bars.map(function (b) { return b.w; }));
+    var ytop = b100 ? 108 : Math.max(top, 1e-6) * 1.08, yl = maxNTicks(0, ytop, 9), ylab = scalarLabels(yl);
+    function X(v) { return x0 + (v - xl0) * (x1 - x0) / (xl1 - xl0); }
+    function Y(v) { return yB - v * (yB - yT) / ytop; }
+    function Y2(v) { return yB - v * (yB - yT) / 102; }
+    var TL = 7 * PT, PAD = 3.5 * PT, tw = F(1.2 * PT), o = [svgOpen(W, H, MF_AR)], tick = ' stroke="#000" stroke-width="' + tw + '" fill="none"';
+    var ol = F(1.2 * PT);
+    bars.forEach(function (b) {
+      var h = b100 ? (b.w > 0 ? 100 : 0) : b.w, xa2 = X(b.phi - bw / 2), xb2 = X(b.phi + bw / 2), f = comp.frac.get(round6(b.phi));
+      if (!(h > 0)) return;
+      if (f) {
+        var bottom = 0;
+        for (var k = comp.names.length - 1; k >= 0; k--) {
+          var seg = b100 ? f[k] : f[k] * b.w / 100;
+          if (seg > 0) o.push('<rect x="' + F(xa2) + '" y="' + F(Y(bottom + seg)) + '" width="' + F(xb2 - xa2) + '" height="' + F(Y(bottom) - Y(bottom + seg)) + '" fill="' + colors[k] + '"/>');
+          bottom += Math.max(0, seg);
+        }
+        o.push('<rect x="' + F(xa2) + '" y="' + F(Y(h)) + '" width="' + F(xb2 - xa2) + '" height="' + F(Y(0) - Y(h)) + '" fill="none" stroke="#000" stroke-width="' + ol + '"/>');
+      } else o.push('<rect x="' + F(xa2) + '" y="' + F(Y(h)) + '" width="' + F(xb2 - xa2) + '" height="' + F(Y(0) - Y(h)) + '" fill="#8c8c8c" stroke="#000" stroke-width="' + ol + '"/>');
+    });
+    var minL = x0 - TL, maxB = yB + TL;
+    yl.forEach(function (v, i) {
+      if (!(v >= -ytop * 1e-10 && v <= ytop * (1 + 1e-10))) return;
+      o.push('<path d="M' + F(x0) + " " + F(Y(v)) + "H" + F(x0 - TL) + '"' + tick + "/>");
+      var t = place(ylab[i], 9.5, false, x0 - TL - PAD, Y(v), "right", "center_baseline"); o.push(t.svg); minL = Math.min(minL, t.x0);
+    });
+    var vt = tk.filter(function (v) { return v >= xl0 - 1e-9 && v <= xl1 + 1e-9; });
+    vt.forEach(function (v) {
+      o.push('<path d="M' + F(X(v)) + " " + F(yB) + "V" + F(yB + TL) + '"' + tick + "/>");
+      var t = place(gFmt(v), 9.5, false, X(v), yB + TL + PAD, "center", "top"); o.push(t.svg); maxB = Math.max(maxB, t.y1);
+    });
+    o.push(place("PHI (Φ)", 13, true, (x0 + x1) / 2, maxB + 4 * PT, "center", "top").svg);
+    var yLab = b100 ? "Vol. %" : "%Wt", tl = tm(yLab, 13, true);
+    o.push(tEl(yLab, tl.px, true, minL - 4 * PT - tl.d, (yT + yB) / 2 + tl.w / 2, "#000", true));
+    // eje superior en μm
+    var ut = vt.length > 9 ? (function () { var idx = [], out = []; for (var j = 0; j < 9; j++) { var q2 = rint(j * (vt.length - 1) / 8); if (idx.indexOf(q2) < 0) { idx.push(q2); out.push(vt[q2]); } } return out; })() : vt;
+    var minT = yT - TL;
+    ut.forEach(function (v) {
+      var um = 1000 * Math.pow(2, -v);
+      o.push('<path d="M' + F(X(v)) + " " + F(yT) + "V" + F(yT - TL) + '"' + tick + "/>");
+      var t = place(um >= 10 ? pyFixed(um, 0) : g2(um), 9.5, false, X(v), yT - TL - PAD, "center", "baseline"); o.push(t.svg);
+      minT = Math.min(minT, yT - TL - PAD - tm("0", 9.5, false).h);
+    });
+    var ulab = tm("Particle size (μm)", 11, true);
+    o.push(place("Particle size (μm)", 11, true, (x0 + x1) / 2, minT - 4 * PT, "center", "baseline").svg);
+    o.push(place(title, 19, true, (x0 + x1) / 2, minT - 4 * PT - ulab.h - 14 * PT, "center", "baseline").svg);
+    var spn = ' stroke="#000" stroke-width="' + F(1.6 * PT) + '" stroke-linecap="square" fill="none"';
+    o.push('<path d="M' + F(x0) + " " + F(yB) + "V" + F(yT) + '"' + spn + "/>");
+    o.push('<path d="M' + F(x0) + " " + F(yB) + "H" + F(x1) + '"' + spn + "/>");
+    o.push('<path d="M' + F(x0) + " " + F(yT) + "H" + F(x1) + '"' + spn + "/>");
+    if (showCum) {
+      var cw = gsd.map(function (r) { return Math.max(0, r.w); }), tot = cw.reduce(function (a, b) { return a + b; }, 0), run = 0;
+      var cum = cw.map(function (v) { run += v; return tot > 0 ? 100 * run / tot : NaN; }), maxR = x1 + TL;
+      [0, 20, 40, 60, 80, 100].forEach(function (v) {
+        o.push('<path d="M' + F(x1) + " " + F(Y2(v)) + "H" + F(x1 + TL) + '"' + tick + "/>");
+        var t = place(String(v), 9.5, false, x1 + TL + 6 * PT, Y2(v), "left", "center_baseline"); o.push(t.svg); maxR = Math.max(maxR, t.x1);
+      });
+      o.push('<path d="M' + F(x1) + " " + F(yB) + "V" + F(yT) + '"' + spn + "/>");
+      var rl = tm("%Wt cumulative frequency", 11, true), cx = x0 + 1.105 * (x1 - x0);
+      o.push(tEl("%Wt cumulative frequency", rl.px, true, cx + (rl.h - rl.d) / 2 - rl.d / 2, (yT + yB) / 2 + rl.w / 2, "#000", true));
+      var pp = [];
+      gsd.forEach(function (r, i) { if (isFinite(cum[i])) pp.push(F(X(r.phi)) + " " + F(Y2(cum[i]))); });
+      if (pp.length) o.push('<path d="M' + pp.join("L") + '" fill="none" stroke="#000" stroke-width="' + F(1.8 * PT) + '" stroke-linejoin="round"/>');
+      gsd.forEach(function (r, i) { if (isFinite(cum[i])) o.push('<rect x="' + F(X(r.phi) - 3.82) + '" y="' + F(Y2(cum[i]) - 3.82) + '" width="7.64" height="7.64" fill="#fff" stroke="#000" stroke-width="' + F(1.2 * PT) + '"/>'); });
+    }
+    if (items) {
+      var fs = 8, px = fs * PT, rowH = tm("lp", fs, false).h, spc = 0.26 * px, hl = 1.10 * px, hh = 0.7 * px, tp = 0.42 * px, bp = 0.4 * px;
+      var n2 = comp.names.length, hgt = 2 * bp + n2 * rowH + (n2 - 1) * spc, lx = (showCum ? 0.785 : 0.755) * W, cy0 = H * (1 - (0.14 + 0.82) / 2) - hgt / 2;
+      comp.names.forEach(function (nm, k) {
+        var cy = cy0 + bp + k * (rowH + spc) + rowH / 2;
+        o.push('<rect x="' + F(lx + bp) + '" y="' + F(cy - hh / 2) + '" width="' + F(hl) + '" height="' + F(hh) + '" fill="' + colors[k] + '"/>');
+        o.push(place(nm, fs, false, lx + bp + hl + tp, cy, "left", "center_baseline").svg);
+      });
+    }
+    o.push("</svg>");
+    return o.join("");
+  }
+  ui.bmode = "wt";
+  var gridC = new Grid($("#grid-comp"), 8, 4, "phComp", function () { renderComp(allSamples()); });
+  var EXC = [[-4, 70, 12, 18, 0, 0], [-3, 66, 13, 19, 2, 0], [-2, 60, 14, 20, 5, 1], [-1, 52, 13, 21, 10, 4], [0, 42, 12, 20, 16, 10], [1, 32, 10, 18, 20, 20], [2, 22, 8, 15, 23, 32], [3, 14, 6, 12, 24, 44], [4, 8, 4, 10, 22, 56], [5, 5, 3, 8, 20, 64]];
+  function exampleComp() { return [["φ"].concat(L("exComp"))].concat(EXC.map(function (r) { return r.slice(); })); }
+  function renderComp(list) {
+    var sel = $("#sel-cgsd"), ids = list.map(function (s) { return s.id; });
+    sel.innerHTML = '<option value="">' + escT(L("noGsd")) + "</option>" + list.map(function (s) { return '<option value="' + esc(s.id) + '">' + escT(s.name + " · " + baseName(s.base)) + "</option>"; }).join("");
+    if ((!ui.cgsdUser && !ui.cgsd) || (ui.cgsd && ids.indexOf(ui.cgsd) < 0)) ui.cgsd = list.length ? list[0].id : "";
+    sel.value = ui.cgsd;
+    var S = list.filter(function (s) { return s.id === ui.cgsd; })[0] || null, gsd = S ? prepSeries(S.rows) : null;
+    if (gsd && !gsd.length) gsd = null;
+    var b100 = !gsd || ui.bmode === "100";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-bmode]"), function (b) {
+      var k = b.getAttribute("data-bmode"); b.disabled = k === "wt" && !gsd; b.setAttribute("aria-pressed", (k === "100") === b100 ? "true" : "false");
+    });
+    var comp = parseComp(gridC.getAoA()), note = $("#comp-note"), miss = [];
+    if (gsd) { var have = {}; S.rows.forEach(function (r) { if (isFinite(r.phi)) have[round6(r.phi)] = true; }); comp.frac.forEach(function (v, p) { if (!have[p]) miss.push(phiTxt(p)); }); }
+    note.hidden = !miss.length; note.textContent = miss.length ? L("compMissing")(miss.join(", ")) : "";
+    var ok = comp.names.length && comp.frac.size;
+    ui.ksvg = ok ? svgComp(S ? S.name : "", gsd, comp, compColors(comp.names.length), b100) : "";
+    ui.ktitle = (S ? S.name : "componentes") + (b100 ? " 100" : "");
+    $("#fig-comp").innerHTML = ui.ksvg || '<p class="empty">' + escT(L("compEmpty")) + "</p>";
+    $("#dl-png-k").disabled = !ui.ksvg;
+  }
+  $("#sel-cgsd").addEventListener("change", function () { ui.cgsdUser = true; ui.cgsd = this.value; renderComp(allSamples()); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-bmode]"), function (b) { b.addEventListener("click", function () { ui.bmode = b.getAttribute("data-bmode"); renderComp(allSamples()); }); });
+  $("#ex-comp").addEventListener("click", function () {
+    gridC.setAoA(exampleComp());
+    // con el ejemplo, usar la granulometría que cubre más fracciones del ejemplo
+    var best = null, bn = -1;
+    allSamples().forEach(function (s) { var n = 0; EXC.forEach(function (r) { if (s.rows.some(function (q) { return isClose(q.phi, r[0]) && q.w > 0; })) n++; }); if (n > bn) { bn = n; best = s; } });
+    if (best && !ui.cgsdUser) ui.cgsd = best.id;
+    renderComp(allSamples());
+  });
+  $("#clr-comp").addEventListener("click", function () { gridC.clear(); });
+  $("input[data-cfile]").addEventListener("change", function () {
+    var inp = this, f = inp.files && inp.files[0]; inp.value = "";
+    if (!f) return;
+    readWorkbook(f).then(function (aoa) { gridC.setAoA(aoa); renderComp(allSamples()); }).catch(function () {});
+  });
+  $("#dl-png-k").addEventListener("click", function () { savePng(ui.ksvg, 1150, 640, ui.ktitle); });
+
+  /* 9. Dimensión fractal, método de masa (FractalAnalysis.py) */
+  var T95 = [NaN, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.160, 2.145, 2.131, 2.120, 2.110, 2.101, 2.093, 2.086, 2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042];
+  function t95(dof) { if (dof < 1) return NaN; if (dof <= 30) return T95[dof]; var z = 1.959963985; return z + (z * z * z + z) / (4 * dof) + (5 * Math.pow(z, 5) + 16 * z * z * z + 3 * z) / (96 * dof * dof); }
+  function linReg(x, y) {
+    var n = x.length, xm = 0, ym = 0, i;
+    for (i = 0; i < n; i++) { xm += x[i]; ym += y[i]; }
+    xm /= n; ym /= n;
+    var sxx = 0, sxy = 0;
+    for (i = 0; i < n; i++) { sxx += (x[i] - xm) * (x[i] - xm); sxy += (x[i] - xm) * (y[i] - ym); }
+    if (!(sxx > 2.220446049250313e-16)) return null;
+    var slope = sxy / sxx, b = ym - slope * xm, sse = 0, sst = 0;
+    for (i = 0; i < n; i++) { var e = y[i] - (slope * x[i] + b); sse += e * e; sst += (y[i] - ym) * (y[i] - ym); }
+    var r2 = sst > 2.220446049250313e-16 ? 1 - sse / sst : NaN, dof = n - 2, se = NaN, ci = NaN;
+    if (dof > 0) { se = Math.sqrt(Math.max(0, sse / dof / sxx)); ci = t95(dof) * se; }
+    return { slope: slope, intercept: b, r2: r2, n: n, se: se, ci: ci };
+  }
+  function fractalMass(rows, excl) {
+    var res = { rows: [], fit: null, D: NaN, se: NaN, ci: NaN, v: NaN, p: NaN, pse: NaN, issues: null, warn: [] };
+    var fin = rows.filter(function (r) { return isFinite(r.phi) && isFinite(r.w); }), raw = new Map(), clip = new Map();
+    fin.forEach(function (r) { raw.set(r.phi, (raw.get(r.phi) || 0) + r.w); clip.set(r.phi, (clip.get(r.phi) || 0) + Math.max(0, r.w)); });
+    var all = Array.from(raw.keys()).sort(function (a, b) { return a - b; }), pos = all.filter(function (p) { return raw.get(p) > 0; });
+    if (!pos.length) return res;
+    var phis = all.filter(function (p) { return p >= pos[0] && p <= pos[pos.length - 1]; });
+    var mass = phis.map(function (p) { return Math.max(0, clip.get(p) || 0); }), total = mass.reduce(function (a, b) { return a + b; }, 0);
+    if (!(total > 0)) return res;
+    var cum = new Array(phis.length), acc = 0;
+    for (var i = phis.length - 1; i >= 0; i--) { acc += mass[i]; cum[i] = acc; }
+    phis.forEach(function (p, i) {
+      var coarser = all.filter(function (q) { return q < p - 1e-9; }), finer = all.filter(function (q) { return q > p + 1e-9; });
+      var step = coarser.length ? p - Math.max.apply(null, coarser) : (finer.length ? Math.min.apply(null, finer) - p : 1);
+      if (!isFinite(step) || step <= 0) step = 1;
+      var R = Math.pow(2, -(p - step)), frac = cum[i] / total, lr = R > 0 ? Math.log10(R) : NaN, lf = frac > 0 ? Math.log10(frac) : NaN;
+      var valid = isFinite(lr) && isFinite(lf);
+      res.rows.push({ phi: p, R: R, frac: frac, lr: lr, lf: lf, valid: valid, use: valid && !(excl && excl[String(p)]) });
+    });
+    var used = res.rows.filter(function (r) { return r.use; });
+    if (used.length >= 2) res.fit = linReg(used.map(function (r) { return r.lr; }), used.map(function (r) { return r.lf; }));
+    if (!res.fit) { res.warn.push("few"); return res; }
+    var f = res.fit;
+    res.v = f.slope; res.D = 3 - f.slope; res.se = f.se; res.ci = f.ci;
+    if (res.D >= 0 && res.D <= 3) { res.p = Math.pow(2, res.D) / 8; res.pse = isFinite(f.se) ? res.p * Math.LN2 * f.se : NaN; } else res.warn.push("out");
+    res.issues = [];
+    if (f.n < 3) res.issues.push("n");
+    if (!isFinite(f.r2) || f.r2 <= 0.9) res.issues.push("r2");
+    if (isFinite(f.se) && f.se > 0.1) res.issues.push("se");
+    return res;
+  }
+  function svgFractal(res) {
+    var valid = res.rows.filter(function (r) { return r.valid; });
+    if (!valid.length) return "";
+    var W = 900, H = 560, used = valid.filter(function (r) { return r.use; }), excl = valid.filter(function (r) { return !r.use; });
+    var xs = valid.map(function (r) { return r.R; }), ys = valid.map(function (r) { return r.frac * 100; });
+    var xlo = Math.min.apply(null, xs), xhi = Math.max.apply(null, xs), ylo = Math.min.apply(null, ys), yhi = Math.max.apply(null, ys);
+    var xl0 = xlo / Math.pow(10, 0.08), xl1 = xhi * Math.pow(10, 0.08), dec = yhi > ylo ? Math.log10(yhi / ylo) : 0, yp = Math.pow(10, Math.max(0.08, 0.05 * dec)), yl0 = ylo / yp, yl1 = yhi * yp;
+    var kmin = Math.floor(Math.log2(xlo) + 1e-9), kmax = Math.ceil(Math.log2(xhi) - 1e-9), ks = [];
+    for (var k = kmin; k <= kmax; k++) ks.push(k);
+    var kstep = ks.length <= 12 ? 1 : 2, xt = ks.filter(function (v, i) { return i % kstep === 0; }).map(function (q) { return Math.pow(2, q); });
+    var subs = dec <= 3.5 ? [1, 2, 5] : [1], yt = [];
+    for (var e = Math.floor(Math.log10(yl0)) - 1; e <= Math.ceil(Math.log10(yl1)) + 1; e++) subs.forEach(function (s2) { var v = s2 * Math.pow(10, e); if (v >= yl0 * (1 - 1e-9) && v <= yl1 * (1 + 1e-9)) yt.push(v); });
+    xt = xt.filter(function (v) { return v >= xl0 * (1 - 1e-9) && v <= xl1 * (1 + 1e-9); });
+    function xlab(v) { return v >= 1 ? gFmt(v) : pyFixed(v, 3 - 1 - Math.floor(Math.log10(v))).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, ""); }
+    function ylab(v) { return gFmt(v) + "%"; }
+    var lw = 0;
+    yt.forEach(function (v) { lw = Math.max(lw, tm(ylab(v), 10, false).w); });
+    var lab = tm("Particle size (mm)", 11, false), PADT = 6 * PT, x0 = 22 + lab.h + 8 * PT + lw + PADT, x1 = W - 30, yT = 26, yB = H - (22 + lab.h + 8 * PT + tm("0", 10, false).h + PADT);
+    function X(v) { return x0 + (Math.log10(v) - Math.log10(xl0)) * (x1 - x0) / (Math.log10(xl1) - Math.log10(xl0)); }
+    function Y(v) { return yB - (Math.log10(v) - Math.log10(yl0)) * (yB - yT) / (Math.log10(yl1) - Math.log10(yl0)); }
+    var o = [svgOpen(W, H, '"DejaVu Sans FW", "DejaVu Sans", Verdana, sans-serif')], gsw = ' stroke="#EDEFF2" stroke-width="' + F(PT) + '"';
+    xt.forEach(function (v) { o.push('<path d="M' + F(X(v)) + " " + F(yT) + "V" + F(yB) + '"' + gsw + "/>"); });
+    yt.forEach(function (v) { o.push('<path d="M' + F(x0) + " " + F(Y(v)) + "H" + F(x1) + '"' + gsw + "/>"); });
+    var spn = ' stroke="#D1D5DB" stroke-width="' + F(PT) + '" fill="none"';
+    o.push('<path d="M' + F(x0) + " " + F(yT) + "V" + F(yB) + "H" + F(x1) + '"' + spn + "/>");
+    var minL = x0, maxB = yB;
+    xt.forEach(function (v) { var t = place(xlab(v), 10, false, X(v), yB + PADT, "center", "top", "#4B5563"); o.push(t.svg); maxB = Math.max(maxB, t.y1); });
+    yt.forEach(function (v) { var t = place(ylab(v), 10, false, x0 - PADT, Y(v), "right", "center_baseline", "#4B5563"); o.push(t.svg); minL = Math.min(minL, t.x0); });
+    o.push(place("Particle size (mm)", 11, false, (x0 + x1) / 2, maxB + 8 * PT, "center", "top", "#374151").svg);
+    var yl = tm("Mass finer than this size (%)", 11, false);
+    o.push(tEl("Mass finer than this size (%)", yl.px, false, minL - 8 * PT - yl.d, (yT + yB) / 2 + yl.w / 2, "#374151", true));
+    var f = res.fit, items = [];
+    if (f && used.length >= 2) {
+      var ux = used.map(function (r) { return r.R; }), a = Math.min.apply(null, ux), b = Math.max.apply(null, ux);
+      function fy(x) { return 100 * Math.pow(10, f.intercept) * Math.pow(x, f.slope); }
+      o.push('<path d="M' + F(X(a)) + " " + F(Y(fy(a))) + "L" + F(X(b)) + " " + F(Y(fy(b))) + '" stroke="#1F2937" stroke-opacity="0.9" stroke-width="' + F(2.6 * PT) + '" stroke-linecap="round" fill="none"/>');
+    }
+    var re = Math.sqrt(85) / 2 * PT, ru = Math.sqrt(115) / 2 * PT;
+    excl.forEach(function (r) { o.push('<circle data-phi="' + r.phi + '" cx="' + F(X(r.R)) + '" cy="' + F(Y(r.frac * 100)) + '" r="' + F(re) + '" fill="#fff" stroke="#9CA3AF" stroke-width="' + F(1.8 * PT) + '"><title>φ ' + r.phi + "</title></circle>"); });
+    used.forEach(function (r) { o.push('<circle data-phi="' + r.phi + '" cx="' + F(X(r.R)) + '" cy="' + F(Y(r.frac * 100)) + '" r="' + F(ru) + '" fill="#EA580C" stroke="#fff" stroke-width="' + F(1.5 * PT) + '"><title>φ ' + r.phi + "</title></circle>"); });
+    if (excl.length) items.push({ label: "Not used in the fit", handle: function (x, y, hl) { return '<circle cx="' + F(x + hl / 2) + '" cy="' + F(y) + '" r="' + F(re * 0.75) + '" fill="#fff" stroke="#9CA3AF" stroke-width="' + F(1.8 * PT) + '"/>'; } });
+    if (used.length) items.push({ label: "Used in the fit", handle: function (x, y, hl) { return '<circle cx="' + F(x + hl / 2) + '" cy="' + F(y) + '" r="' + F(ru * 0.75) + '" fill="#EA580C" stroke="#fff" stroke-width="' + F(1.5 * PT) + '"/>'; } });
+    if (f && used.length >= 2) items.push({ label: "Fit line", handle: function (x, y, hl) { return '<path d="M' + F(x) + " " + F(y) + "H" + F(x + hl) + '" stroke="#1F2937" stroke-width="' + F(2.6 * PT) + '" stroke-linecap="round"/>'; } });
+    o.push(legendBox(items, 9.5, { x0: x0, x1: x1, yT: yT, yB: yB }, "lr", false, "#374151"));
+    if (isFinite(res.D)) {
+      var lx = x0 + 0.03 * (x1 - x0), ly = yT + 0.03 * (yB - yT), dt = "D = " + pyFixed(res.D, 2), td = tm(dt, 24, true), ts = tm("Mass method", 10.5, false);
+      o.push('<rect x="' + F(lx - 0.3 * 24 * PT) + '" y="' + F(ly - 0.3 * 24 * PT) + '" width="' + F(td.w + 0.6 * 24 * PT) + '" height="' + F(td.h + 0.6 * 24 * PT) + '" rx="' + F(0.3 * 24 * PT) + '" fill="#fff" fill-opacity="0.85"/>');
+      o.push(place(dt, 24, true, lx, ly, "left", "top", "#EA580C").svg);
+      o.push('<rect x="' + F(lx - 0.3 * 10.5 * PT) + '" y="' + F(ly + 42 * PT - 0.3 * 10.5 * PT) + '" width="' + F(ts.w + 0.6 * 10.5 * PT) + '" height="' + F(ts.h + 0.6 * 10.5 * PT) + '" rx="' + F(0.3 * 10.5 * PT) + '" fill="#fff" fill-opacity="0.85"/>');
+      o.push(place("Mass method", 10.5, false, lx, ly + 42 * PT, "left", "top", "#6B7280").svg);
+    }
+    o.push("</svg>");
+    return o.join("");
+  }
+  ui.fdEx = {};
+  function renderFractal(list) {
+    var sel = $("#sel-fd"), ids = list.map(function (s) { return s.id; });
+    sel.innerHTML = list.map(function (s) { return '<option value="' + esc(s.id) + '">' + escT(s.name + " · " + baseName(s.base)) + "</option>"; }).join("");
+    sel.disabled = !list.length;
+    if (!ui.fds || ids.indexOf(ui.fds) < 0) ui.fds = list.length ? list[0].id : "";
+    sel.value = ui.fds;
+    var S = list.filter(function (s) { return s.id === ui.fds; })[0], res = S ? fractalMass(S.rows, ui.fdEx[ui.fds]) : null;
+    ui.fres = res;
+    ui.fsvg = res ? svgFractal(res) : "";
+    ui.ftitle = (S ? S.name : "fractal") + " D";
+    $("#fig-fd").innerHTML = ui.fsvg || '<p class="empty">' + escT(L(list.length ? "fdNoData" : "noSamples")) + "</p>";
+    $("#dl-png-f").disabled = !ui.fsvg;
+    $("#fd-reset").disabled = !(S && ui.fdEx[ui.fds] && Object.keys(ui.fdEx[ui.fds]).length);
+    var st = $("#fd-stats"), w = $("#fd-warn");
+    if (!res || !res.fit) { st.innerHTML = ""; }
+    else {
+      var f = res.fit, iss = res.issues || [], chk = !iss.length ? L("fdOK") : L("fdCheck") + iss.map(function (k) {
+        return k === "n" ? (lang === "es" ? "n < 3, sin EE" : "n < 3, no SE") : (k === "r2" ? (lang === "es" ? "R² ≤ 0,9" : "R² ≤ 0.9") : (lang === "es" ? "EE > 0,1" : "SE > 0.1"));
+      }).join(", ");
+      var tiles = [["D", decTxt(res.D, 3), "main"], [L("fdSE"), decTxt(res.se, 3)], [L("fdCI"), isFinite(res.ci) ? "± " + decTxt(res.ci, 3) : "—"], ["R²", decTxt(f.r2, 4)], [L("fdN"), String(f.n)], [L("fdV"), decTxt(res.v, 3)], [L("fdP"), isFinite(res.p) ? decTxt(res.p, 3) + (isFinite(res.pse) ? " ± " + decTxt(res.pse, 3) : "") : "—"], [L("fdChk"), chk]];
+      st.innerHTML = tiles.map(function (t) { return '<div class="stat' + (t[2] ? " " + t[2] : "") + '"><span>' + escT(t[0]) + "</span><b>" + escT(t[1] || "—") + "</b></div>"; }).join("");
+    }
+    var msgs = [];
+    if (res && res.warn.indexOf("few") >= 0 && res.rows.length) msgs.push(L("fdFew"));
+    if (res && res.warn.indexOf("out") >= 0) msgs.push(L("fdOut"));
+    w.hidden = !msgs.length; w.textContent = msgs.join(" ");
+  }
+  $("#sel-fd").addEventListener("change", function () { ui.fds = this.value; renderFractal(allSamples()); });
+  $("#fig-fd").addEventListener("click", function (e) {
+    var c = e.target.closest("circle[data-phi]"); if (!c || !ui.fds) return;
+    var m = ui.fdEx[ui.fds] = ui.fdEx[ui.fds] || {}, k = String(+c.getAttribute("data-phi"));
+    if (m[k]) delete m[k]; else m[k] = true;
+    renderFractal(allSamples());
+  });
+  $("#fd-reset").addEventListener("click", function () { if (ui.fds) delete ui.fdEx[ui.fds]; renderFractal(allSamples()); });
+  $("#dl-png-f").addEventListener("click", function () { savePng(ui.fsvg, 900, 560, ui.ftitle); });
+
 
   function renderExtras() {
     var list = allSamples();
     renderHybList();
     renderParams(list);
     renderCurves(list);
-    /*@@STAGE2CALL@@*/
+    renderDiagram(list);
+    renderComp(list);
+    renderFractal(list);
   }
 
   /* ------------------------------------------------------------------ */
@@ -1778,7 +2276,7 @@ footer .nw{white-space:nowrap}
     });
     Array.prototype.forEach.call(document.querySelectorAll(".lang button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-lang") === l ? "true" : "false"); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function (b) { b.textContent = fmtStep(+b.getAttribute("data-step")); });
-    gridS.render(); gridL.render();
+    gridS.render(); gridL.render(); if (gridC) gridC.render();
     renderStatus("sieve"); renderStatus("laser");
     if (save) { try { localStorage.setItem("fw-lang", l); } catch (e) {} }
     if (typeof update === "function") update();
@@ -1789,7 +2287,7 @@ footer .nw{white-space:nowrap}
   applyLang(lang, false);
 
   // Funciones expuestas para las verificaciones contra el FW original
-  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser, calcParams: calcParams, hybridM1: hybridM1, hybridM2: hybridM2, svgHistogram: svgHistogram, calcPerc: calcPerc, svgCurves: svgCurves, allSamples: allSamples /*@@CORE2@@*/ };
+  window.FW_CORE = { sheetFromAoA: sheetFromAoA, normalizeTamiz: normalizeTamiz, sieveSums: sieveSums, normalizeTo100: normalizeTo100, normalizeLaser: normalizeLaser, binLaser: binLaser, calcParams: calcParams, hybridM1: hybridM1, hybridM2: hybridM2, svgHistogram: svgHistogram, calcPerc: calcPerc, svgCurves: svgCurves, allSamples: allSamples, fractalMass: fractalMass, parseComp: parseComp, compColors: compColors, svgDiagram: svgDiagram, svgComp: svgComp, svgFractal: svgFractal, paramHeadroom: paramHeadroom };
 })();
 </script>
 </body>
